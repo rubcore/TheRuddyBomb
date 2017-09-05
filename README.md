@@ -14,4 +14,4 @@ Our intention is that clion is only used as a editor, not a fully fledged IDE.
 
 The only reason that CMake is checked is is for easier clion setup.
 
-!(http://rub.printmighty.co.nz/assets/Uploads/_resampled/xSetWidth846-webstorebanner4.png.pagespeed.ic.LG9ZfQe-v2.png)
+![The ruddy bastards](http://rub.printmighty.co.nz/assets/Uploads/_resampled/xSetWidth846-webstorebanner4.png.pagespeed.ic.LG9ZfQe-v2.png)
