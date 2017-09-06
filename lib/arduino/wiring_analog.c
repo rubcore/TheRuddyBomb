@@ -285,6 +285,7 @@ void analogWrite(uint8_t pin, int val)
 			default:
 				if (val < 128) {
 					digitalWrite(pin, LOW);
+
 				} else {
 					digitalWrite(pin, HIGH);
 				}

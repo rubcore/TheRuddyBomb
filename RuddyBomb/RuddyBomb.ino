@@ -1,8 +1,8 @@
 #include <LiquidCrystal.h>
-#include <Config.h>
-#include <LcdKeypad.h>
-#include <MenuData.h>
-#include <TimerOne.h>
+#include "Config.h"
+#include "LcdKeypad.h"
+#include "MenuData.h"
+#include "TimerOne.h"
 #include "RuddyBomb.h"
 
 
@@ -25,7 +25,7 @@ unsigned long alarmStartTime;
 short timerFineGrainedCounter[3];
 unsigned long lastMilliSecondTimerValue = 0;
 char currentTimerIdx = 0;
-byte btn;
+int btn;
 Config currentConfig;
 
 // initialize the library with the numbers of the interface pins
@@ -54,7 +54,7 @@ void setup() {
     Timer1.attachInterrupt(lcdBacklightISR, 500);
     setBacklightBrightness(currentConfig.displayBrightness);
 
-    //Serial.begin(9600);
+//    Serial.begin(9600);
 }
 
 

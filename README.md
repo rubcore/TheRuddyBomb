@@ -26,3 +26,9 @@ The only reason that CMake is checked in is for easier clion setup. You can of c
 - LCDCountDownTimer
 - LiquidCrystal (default)
 - TimerOne
+
+## Changing a library
+If you change a library you will need to ensure that the arduino ide is updated to look at it.
+Either by deploying a new zip or by replacing the library manually.
+
+This sucks but oh well.
