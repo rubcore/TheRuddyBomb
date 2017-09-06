@@ -45,9 +45,9 @@ void setup() {
     lcd.begin(LCD_COLS, LCD_ROWS);
     currentConfig.load();
 
-    initTimers();
+//    initTimers();
 
-    printTimerValue(0, true);
+//    printTimerValue(0, true);
 
     // Use soft PWM for backlight, as hardware PWM must be avoided for some LCD shields.
     Timer1.initialize();
@@ -60,17 +60,41 @@ void setup() {
 
 void loop() {
     btn = getButton();
+//    btn = analogRead(BUTTON_PIN);
+//    lcd.setCursor(0, 0);
+//
+//
+//
+//    if (btn <= BUTTON_RIGHT_ANALOG_VALUE) {
+//        lcd.print((unsigned int)btn);
+//    } else if (btn <= BUTTON_UP_ANALOG_VALUE) {
+//        lcd.print((unsigned int)btn);
+//    } else if (btn <= BUTTON_DOWN_ANALOG_VALUE) {
+//        lcd.print((unsigned int)btn);
+//    } else if (btn <= BUTTON_LEFT_ANALOG_VALUE) {
+//        lcd.print((unsigned int)btn);
+//    } else if (btn <= BUTTON_SELECT_ANALOG_VALUE) {
+//        lcd.print((unsigned int)btn);
+//    }
+//
+//    return;
 
     if (btn && currentConfig.buttonBeep && appMode != APP_ALARM) {
         byte btnFlags = btn & 192;
 
         if (btnFlags == BUTTON_PRESSED_IND)   // if any button pressed.
         {
+
             digitalWrite(ALARM_PIN, HIGH);
             delay(3);
             digitalWrite(ALARM_PIN, LOW);
+
+            lcd.setCursor(0, 0);
+            lcd.print(btn);
+
         }
     }
+    return;
 
     switch (appMode) {
         case APP_NORMAL_MODE :

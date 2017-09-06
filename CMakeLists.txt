@@ -6,3 +6,5 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(lib/LiquidCrystal)
 include_directories(lib/arduino)
+include_directories("lib/arduino")
+include_directories(lib/TimerOne)
