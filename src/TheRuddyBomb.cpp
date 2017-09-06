@@ -1,9 +1,9 @@
 #include <LiquidCrystal.h>
 #include <Config.h>
-#include <LcdKeypad.h>
 #include <MenuData.h>
+#include <LcdKeypad.h>
 #include <TimerOne.h>
-#include "RuddyBomb.h"
+#include "TheRuddyBomb.h"
 
 
 #define ALARM_PIN 2
@@ -24,7 +24,7 @@ long timerCurrentValue[3];
 unsigned long alarmStartTime;
 short timerFineGrainedCounter[3];
 unsigned long lastMilliSecondTimerValue = 0;
-char currentTimerIdx = 0;
+byte currentTimerIdx = 0;
 byte btn;
 Config currentConfig;
 
@@ -34,6 +34,20 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 MenuManager Menu1(cd_timer_menu_Root, menuCount(cd_timer_menu_Root));
 
 void printTimerValue(byte timerIdx, bool showTimerName = false);
+
+//----------------------------------------------------------------------
+// Callback to convert button press to navigation action.
+byte getNavAction() {
+    byte navAction = 0;
+    byte currentItemHasChildren = Menu1.currentItemHasChildren();
+
+    if (btn == BUTTON_UP_PRESSED || btn == BUTTON_UP_LONG_PRESSED) navAction = MENU_ITEM_PREV;
+    else if (btn == BUTTON_DOWN_PRESSED || btn == BUTTON_DOWN_LONG_PRESSED) navAction = MENU_ITEM_NEXT;
+    else if (btn == BUTTON_SELECT_PRESSED || (btn == BUTTON_RIGHT_PRESSED && currentItemHasChildren))
+        navAction = MENU_ITEM_SELECT;
+    //else if (btn == BUTTON_LEFT_PRESSED) navAction = MENU_BACK;
+    return navAction;
+}
 
 
 void setup() {
@@ -83,23 +97,23 @@ void loop() {
                 }
             } else if (btn == BUTTON_SELECT_LONG_PRESSED) {
                 timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
-                printTimerValue(currentTimerIdx);
+                printTimerValue(static_cast<byte>(currentTimerIdx));
             } else if (btn == BUTTON_UP_LONG_PRESSED) {
                 appMode = APP_MENU_MODE;
                 refreshMenuDisplay(REFRESH_DESCEND);
             } else if (btn == BUTTON_UP_SHORT_RELEASE) {
                 currentTimerIdx = static_cast<char>(--currentTimerIdx < 0 ? 0 : currentTimerIdx);
-                printTimerValue(currentTimerIdx, true);
+                printTimerValue(static_cast<byte>(currentTimerIdx), true);
             } else if (btn == BUTTON_DOWN_SHORT_RELEASE) {
-                currentTimerIdx = ++currentTimerIdx > 2 ? 2 : currentTimerIdx;
-                printTimerValue(currentTimerIdx, true);
+                currentTimerIdx = static_cast<char>(++currentTimerIdx > 2 ? 2 : currentTimerIdx);
+                printTimerValue(static_cast<byte>(currentTimerIdx), true);
             }
             break;
         case APP_TIMER_RUNNING :
             if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
                 appMode = APP_NORMAL_MODE;
             } else {
-                short msDelta = (millis() - lastMilliSecondTimerValue);
+                unsigned long msDelta = (millis() - lastMilliSecondTimerValue);
 
                 if (msDelta > 0) {
                     lastMilliSecondTimerValue = millis();
@@ -141,7 +155,8 @@ void loop() {
             }
             break;
         case APP_MENU_MODE : {
-            byte menuMode = Menu1.handleNavigation(getNavAction, refreshMenuDisplay);
+            byte menuMode = Menu1.handleNavigation(reinterpret_cast<unsigned char (*)()>(getNavAction),
+                                                   reinterpret_cast<void (*)(unsigned char)>(refreshMenuDisplay));
 
             if (menuMode == MENU_EXIT) {
                 // Tidy up display
@@ -161,7 +176,7 @@ void loop() {
             break;
         }
         case APP_PROCESS_MENU_CMD : {
-            byte processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
+            auto processingComplete = static_cast<byte>(processMenuCommand(Menu1.getCurrentItemCmdId()));
 
             if (processingComplete) {
                 appMode = APP_MENU_MODE;
@@ -189,7 +204,7 @@ void printTimerValue(byte timerIdx, bool showTimerName) {
         lcd.setCursor(0, 0);
         char intbuf[2];
 
-        inttostr(intbuf, timerIdx + 1);
+        inttostr(intbuf, static_cast<short>(timerIdx + 1));
 
         fmt(strbuf, 2, "Timer ", intbuf);
         lcd.print(strbuf);
@@ -215,9 +230,9 @@ void initTimers() {
 //----------------------------------------------------------------------
 // Addition or removal of menu items in MenuData.h will require this method
 // to be modified accordingly.
-byte processMenuCommand(byte cmdId) {
-    byte complete = false;  // set to true when menu command processing complete.
-    byte configChanged = false;
+bool processMenuCommand(byte cmdId) {
+    bool complete = false;  // set to true when menu command processing complete.
+    bool configChanged = false;
 
     if (btn == BUTTON_SELECT_PRESSED) {
         if (cmdId != mnuCmdResetToDefaults) complete = true;
@@ -372,21 +387,6 @@ byte processMenuCommand(byte cmdId) {
         initTimers();
     }
     return complete;
-}
-
-
-//----------------------------------------------------------------------
-// Callback to convert button press to navigation action.
-byte getNavAction() {
-    byte navAction = 0;
-    byte currentItemHasChildren = Menu1.currentItemHasChildren();
-
-    if (btn == BUTTON_UP_PRESSED || btn == BUTTON_UP_LONG_PRESSED) navAction = MENU_ITEM_PREV;
-    else if (btn == BUTTON_DOWN_PRESSED || btn == BUTTON_DOWN_LONG_PRESSED) navAction = MENU_ITEM_NEXT;
-    else if (btn == BUTTON_SELECT_PRESSED || (btn == BUTTON_RIGHT_PRESSED && currentItemHasChildren))
-        navAction = MENU_ITEM_SELECT;
-    //else if (btn == BUTTON_LEFT_PRESSED) navAction = MENU_BACK;
-    return navAction;
 }
 
 

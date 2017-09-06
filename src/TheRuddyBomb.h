@@ -8,6 +8,6 @@ void refreshMenuDisplay (byte refreshMode);
 
 // Addition or removal of menu items in MenuData.h will require this method
 // to be modified accordingly.
-byte processMenuCommand(byte cmdId);
+bool processMenuCommand(byte cmdId);
 
 #endif

@@ -25,8 +25,8 @@ class Config
     long timer2ReloadValue;
     long timer3ReloadValue;
     
-    char alarmDuration;       // in seconds
-    byte buttonBeep;          // true/false
+    int alarmDuration;       // in seconds
+    bool buttonBeep;          // true/false
     byte displayBrightness;   // 1=25%, 2=50%, 3=75%, 4=100%
     /// </configValues>
     

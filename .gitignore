@@ -1,3 +1,7 @@
 .idea
+.travis*
 cmake-build-debug/*
 
+.pioenvs
+.piolibdeps
+CMakeListsPrivate.txt
