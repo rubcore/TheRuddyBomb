@@ -213,7 +213,7 @@ byte getButton ()
   
   if (buttonBufferCount > 0)
   {
-    button = buttonBuffer [button_read_pos];
+    button = buttonBuffer[button_read_pos];
     buttonBufferCount--;
     button_read_pos++;
     
