@@ -10,4 +10,6 @@ void refreshMenuDisplay (byte refreshMode);
 // to be modified accordingly.
 bool processMenuCommand(byte cmdId);
 
+byte getNavAction();
+
 #endif
