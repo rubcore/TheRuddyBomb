@@ -10,6 +10,10 @@ void refreshMenuDisplay (byte refreshMode);
 // to be modified accordingly.
 bool processMenuCommand(byte cmdId);
 
-byte getNavAction();
+unsigned char getNavAction();
+
+void printTimerValue(byte timerIdx, bool showTimerName = false);
+
+void setupAudio();
 
 #endif

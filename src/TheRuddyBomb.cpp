@@ -4,9 +4,16 @@
 #include <MenuData.h>
 #include <TimerOne.h>
 #include "TheRuddyBomb.h"
+#include <SC16IS750.h>
+#include <WT2000.h>
 
+// dependencies dont seem to get resolved very well...
+#include <SPI.h>
+#include <Wire.h>
 
 #define ALARM_PIN 2
+
+#define         PIN_AUDIO_SWITCH                        (5)
 
 enum AppModeValues {
     APP_NORMAL_MODE,
@@ -18,7 +25,6 @@ enum AppModeValues {
 };
 
 byte appMode = APP_NORMAL_MODE;
-
 char strbuf[LCD_COLS + 1]; // one line of lcd display
 long timerCurrentValue[3];
 unsigned long alarmStartTime;
@@ -26,18 +32,22 @@ short timerFineGrainedCounter[3];
 unsigned long lastMilliSecondTimerValue = 0;
 char currentTimerIdx = 0;
 byte btn;
-Config currentConfig;
 
+Config currentConfig;
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
+
 MenuManager Menu1(cd_timer_menu_Root, menuCount(cd_timer_menu_Root));
 
-void printTimerValue(byte timerIdx, bool showTimerName = false);
+// audio stuffs
+SC16IS750 i2cuart = SC16IS750(SC16IS750_PROTOCOL_I2C,SC16IS750_ADDRESS_BA);
+WT2000 myaudioshield = WT2000(&i2cuart);
+
 
 void setup() {
     pinMode(ALARM_PIN, OUTPUT);
-    digitalWrite(ALARM_PIN, LOW);
+//    digitalWrite(ALARM_PIN, LOW);
 
     backLightOn();
     // set up the LCD's number of columns and rows:
@@ -49,9 +59,12 @@ void setup() {
     printTimerValue(0, true);
 
     // Use soft PWM for backlight, as hardware PWM must be avoided for some LCD shields.
+    setupAudio();
+
     Timer1.initialize();
     Timer1.attachInterrupt(lcdBacklightISR, 500);
     setBacklightBrightness(currentConfig.displayBrightness);
+
 
     //Serial.begin(9600);
 }
@@ -65,9 +78,11 @@ void loop() {
 
         if (btnFlags == BUTTON_PRESSED_IND)   // if any button pressed.
         {
-            digitalWrite(ALARM_PIN, HIGH);
-            delay(3);
-            digitalWrite(ALARM_PIN, LOW);
+
+////            digitalWrite(ALARM_PIN, HIGH);
+//            delay(2000);
+////            digitalWrite(ALARM_PIN, HIGH);
+//            myaudioshield.stop();
         }
     }
 
@@ -79,6 +94,9 @@ void loop() {
                     appMode = APP_TIMER_RUNNING;
                     lcd.setCursor(8, 0);
                     lcd.print("running");
+
+                    myaudioshield.play("PLACE.wav","BOMB");
+//                    myaudioshield.next();
                 }
             } else if (btn == BUTTON_SELECT_LONG_PRESSED) {
                 timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
@@ -136,7 +154,7 @@ void loop() {
             }
 
             if (appMode == APP_NORMAL_MODE) {
-                digitalWrite(ALARM_PIN, LOW);
+                // alarm is playing
             }
             break;
         case APP_MENU_MODE : {
@@ -160,7 +178,7 @@ void loop() {
             break;
         }
         case APP_PROCESS_MENU_CMD : {
-            byte processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
+            bool processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
 
             if (processingComplete) {
                 appMode = APP_MENU_MODE;
@@ -180,12 +198,35 @@ void loop() {
     }
 }
 
+void setupAudio() {
+//    Serial.begin(9600);
+//
+    // UART to Serial Bridge Initialization
+    i2cuart.begin(9600);               //baudrate setting
+    i2cuart.pinMode(PIN_AUDIO_SWITCH,OUTPUT);  //Audio channel selection output. 0: Earphone R - WT2000 DACR ,
+//    //                                   Earphone L -WT2000 DACL
+//    //                                   Microphone - WT2000 MIC in
+//    //                                   WT2000 DACR - SIM900 Audio Input
+//    //                                1: Earphone R - SIM900 Audio Ouput
+//    //                                   Earphone L - SIM900 Audio Ouput
+//    //                                   Microphone - SIM900 Audio Input
+    i2cuart.digitalWrite(PIN_AUDIO_SWITCH,0);  //Set audio channel selection to 0, so sound played by WT2000 will be fed to earphone
+    myaudioshield.mode(WT2000_MODE_SINGLE);    //Set play mode to single shot mode
+    myaudioshield.channel(WT2000_CHANNEL_MIC);    //Set MIC input as the recording channel;
+//
+//    if (i2cuart.ping() !=1 ) {
+//        Serial.println("Error1: Can not connnect to SC16IS750");
+//        Serial.println("Please check the connectivity of SDA-A4, and SCL-A5 if you are a Uno Board.");
+//        Serial.println("You may need to connect A4 to SDA and A5 to SCL with wires if your board does not have SCL and SDA broke out.");
+//    }
+}
+
 
 //----------------------------------------------------------------------
 // Callback to convert button press to navigation action.
-byte getNavAction() {
-    byte navAction = 0;
-    byte currentItemHasChildren = Menu1.currentItemHasChildren();
+unsigned char getNavAction() {
+    unsigned char navAction = 0;
+    unsigned char currentItemHasChildren = Menu1.currentItemHasChildren();
 
     if (btn == BUTTON_UP_PRESSED || btn == BUTTON_UP_LONG_PRESSED) navAction = MENU_ITEM_PREV;
     else if (btn == BUTTON_DOWN_PRESSED || btn == BUTTON_DOWN_LONG_PRESSED) navAction = MENU_ITEM_NEXT;
