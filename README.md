@@ -2,15 +2,12 @@
 
 ## Getting started
 
-1) Install arudino ide
+1) Install platformio core
 2) Install clion
-3) Edit with clion and compile/deploy with arduino ide (don't forget to set it to read only in arudino ide)
+3) Init project with platformio using `--board uno` and `--ide clion` 
+3) Edit with clion and compile/deploy using platformio
 
 ### Note:
-
-Clion will not work and CMake will not compile. This __is__ intended.
-
-Our intention is that clion is only used as a editor, not a fully fledged IDE.
 
 The only reason that CMake is checked in is for easier clion setup. You can of course not use CLion and use whatever development environment you please.
 
@@ -19,6 +16,7 @@ The only reason that CMake is checked in is for easier clion setup. You can of c
 ## Current hardware
 - Arduino Uno
 - DFRobot sheild V1.0 with lcd screen
+- DFT and mp3 player sheid thing (totally forgotten the name)
 
 ## Current libraries
 
