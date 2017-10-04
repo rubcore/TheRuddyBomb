@@ -42,7 +42,7 @@ void printTimerValue(byte timerIdx, bool showTimerName = false);
 
 void printPlantTimeRemainder();
 
-void printDefuseTimeRemainder() ;
+void printDefuseTimeRemainder();
 
 void setup() {
     pinMode(ALARM_PIN, OUTPUT);
@@ -54,9 +54,9 @@ void setup() {
     currentConfig.load();
     setBacklightBrightness(currentConfig.displayBrightness);
 
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print("TheRuddyBomb");
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 1);
     lcd.print("v 7.7.7");
     delay(2500);
 
@@ -236,7 +236,7 @@ void loop() {
 }
 
 void printPlantTimeRemainder() {
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
     inttostr(displaySecondsBuf, (totalBombPlantTime - (millis() - bombPlantStart)) / 1000);
     fmt(strbuf, 2, "Planting.. ", displaySecondsBuf);
@@ -244,7 +244,7 @@ void printPlantTimeRemainder() {
 }
 
 void printDefuseTimeRemainder() {
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
     inttostr(displaySecondsBuf, (totalBombDefuseTime - (millis() - bombDefuseStart)) / 1000);
     fmt(strbuf, 2, "Defusing.. ", displaySecondsBuf);
