@@ -2,29 +2,25 @@
 #include <Config.h>
 #include <LcdKeypad.h>
 #include <MenuData.h>
-#include <TimerOne.h>
 #include "TheRuddyBomb.h"
-#include <SC16IS750.h>
-#include <WT2000.h>
 
-// dependencies dont seem to get resolved very well...
-#include <SPI.h>
-#include <Wire.h>
 
 #define ALARM_PIN 2
 
-#define         PIN_AUDIO_SWITCH                        (5)
-
 enum AppModeValues {
-    APP_NORMAL_MODE,
-    APP_TIMER_RUNNING,
-    APP_ALARM,
-    APP_MENU_MODE,
+    SELECT_BOMB_TYPE,
+    WAITING_FOR_PLANT,
+    BOMB_PLANTING,
+    BOMB_DEFUSING,
+    TIMER_RUNNING,
+    APP_TIMER_FINISHED,
+    APP_CONFIG_MENU,
     APP_PROCESS_MENU_CMD,
     APP_MENU_MODE_END
 };
 
-byte appMode = APP_NORMAL_MODE;
+byte appMode = SELECT_BOMB_TYPE;
+
 char strbuf[LCD_COLS + 1]; // one line of lcd display
 long timerCurrentValue[3];
 unsigned long alarmStartTime;
@@ -32,78 +28,63 @@ short timerFineGrainedCounter[3];
 unsigned long lastMilliSecondTimerValue = 0;
 char currentTimerIdx = 0;
 byte btn;
-
 Config currentConfig;
+
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
-
 MenuManager Menu1(cd_timer_menu_Root, menuCount(cd_timer_menu_Root));
 
-// audio stuffs
-SC16IS750 i2cuart = SC16IS750(SC16IS750_PROTOCOL_I2C,SC16IS750_ADDRESS_BA);
-WT2000 myaudioshield = WT2000(&i2cuart);
+unsigned long bombPlantStart;
+unsigned long bombDefuseStart;
 
+void printTimerValue(byte timerIdx, bool showTimerName = false);
+
+void printPlantTimeRemainder();
+
+void printDefuseTimeRemainder() ;
 
 void setup() {
     pinMode(ALARM_PIN, OUTPUT);
-//    digitalWrite(ALARM_PIN, LOW);
+    digitalWrite(ALARM_PIN, LOW);
 
     backLightOn();
     // set up the LCD's number of columns and rows:
     lcd.begin(LCD_COLS, LCD_ROWS);
     currentConfig.load();
+    setBacklightBrightness(currentConfig.displayBrightness);
+
+    lcd.setCursor(0,0);
+    lcd.print("TheRuddyBomb");
+    lcd.setCursor(0,1);
+    lcd.print("v 7.7.7");
+    delay(2500);
 
     initTimers();
 
     printTimerValue(0, true);
-
-    // Use soft PWM for backlight, as hardware PWM must be avoided for some LCD shields.
-    setupAudio();
-
-    Timer1.initialize();
-    Timer1.attachInterrupt(lcdBacklightISR, 500);
-    setBacklightBrightness(currentConfig.displayBrightness);
-
-
-    //Serial.begin(9600);
 }
 
 
 void loop() {
     btn = getButton();
 
-    if (btn && currentConfig.buttonBeep && appMode != APP_ALARM) {
+    if (btn && currentConfig.buttonBeep && appMode != APP_TIMER_FINISHED) {
         byte btnFlags = btn & 192;
 
         if (btnFlags == BUTTON_PRESSED_IND)   // if any button pressed.
         {
-
-////            digitalWrite(ALARM_PIN, HIGH);
-//            delay(2000);
-////            digitalWrite(ALARM_PIN, HIGH);
-//            myaudioshield.stop();
+            digitalWrite(ALARM_PIN, HIGH);
+            delay(3);
+            digitalWrite(ALARM_PIN, LOW);
         }
     }
 
     switch (appMode) {
-        case APP_NORMAL_MODE :
+        case SELECT_BOMB_TYPE :
+            // start selected timer
             if (btn == BUTTON_SELECT_SHORT_RELEASE) {
-                if (timerCurrentValue[currentTimerIdx] > 0) {
-                    lastMilliSecondTimerValue = millis();
-                    appMode = APP_TIMER_RUNNING;
-                    lcd.setCursor(8, 0);
-                    lcd.print("running");
-
-                    myaudioshield.play("PLACE.wav","BOMB");
-//                    myaudioshield.next();
-                }
-            } else if (btn == BUTTON_SELECT_LONG_PRESSED) {
-                timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
-                printTimerValue(currentTimerIdx);
-            } else if (btn == BUTTON_UP_LONG_PRESSED) {
-                appMode = APP_MENU_MODE;
-                refreshMenuDisplay(REFRESH_DESCEND);
+                appMode = WAITING_FOR_PLANT;
             } else if (btn == BUTTON_UP_SHORT_RELEASE) {
                 currentTimerIdx = static_cast<char>(--currentTimerIdx < 0 ? 0 : currentTimerIdx);
                 printTimerValue(currentTimerIdx, true);
@@ -112,9 +93,63 @@ void loop() {
                 printTimerValue(currentTimerIdx, true);
             }
             break;
-        case APP_TIMER_RUNNING :
-            if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
-                appMode = APP_NORMAL_MODE;
+        case WAITING_FOR_PLANT :
+            // game started. wait for someone to plant the bomb
+            lcd.clear();
+            lcd.setCursor(0, 0);
+            lcd.print("Plant me!");
+
+            if (btn == BUTTON_SELECT_SHORT_RELEASE) {
+                bombPlantStart = millis();
+                lcd.clear();
+
+                printPlantTimeRemainder();
+
+                lcd.setCursor(0, 1);
+                lcd.print("Watch your back");
+                appMode = BOMB_PLANTING;
+            }
+            break;
+        case BOMB_PLANTING :
+            if (btn == BUTTON_SELECT_LONG_RELEASE) {
+                bombDefuseStart = millis();
+
+                lcd.clear();
+                printDefuseTimeRemainder();
+
+                appMode = BOMB_DEFUSING;
+                break;
+            }
+
+            printPlantTimeRemainder();
+            if (totalBombPlantTime <= (millis() - bombPlantStart)) {
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Bomb planted!");
+
+                lastMilliSecondTimerValue = millis();
+                appMode = TIMER_RUNNING;
+            }
+            break;
+        case BOMB_DEFUSING :
+            printDefuseTimeRemainder();
+            if (totalBombDefuseTime <= (millis() - bombDefuseStart)) {
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Bomb defused!");
+
+                lastMilliSecondTimerValue = 0;
+                appMode = WAITING_FOR_PLANT;
+            }
+            break;
+        case TIMER_RUNNING :
+            if (btn == BUTTON_SELECT_LONG_RELEASE) {
+                bombDefuseStart = millis();
+
+                lcd.clear();
+                printDefuseTimeRemainder();
+
+                appMode = BOMB_DEFUSING;
             } else {
                 short msDelta = (millis() - lastMilliSecondTimerValue);
 
@@ -129,35 +164,37 @@ void loop() {
 
                         if (timerCurrentValue[currentTimerIdx] <= 0) {
                             timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
-                            appMode = APP_ALARM;
                             alarmStartTime = millis();
                             digitalWrite(ALARM_PIN, HIGH);
+
+                            lcd.clear();
+                            lcd.setCursor(0, 0);
+                            lcd.print("Game over man");
+                            lcd.setCursor(0, 1);
+                            lcd.print("terrorists win");
+
+                            appMode = APP_TIMER_FINISHED;
                         }
                     }
                 }
             }
-            if (appMode == APP_NORMAL_MODE || appMode == APP_ALARM) {
-                printTimerValue(currentTimerIdx);
-                lcd.setCursor(8, 0);
-                lcd.print("       ");
-            }
             break;
-        case APP_ALARM:
+        case APP_TIMER_FINISHED:
             if (btn) {
                 byte btnFlags = btn & 192;
 
                 if (btnFlags == BUTTON_SHORT_RELEASE_IND || btnFlags == BUTTON_LONG_RELEASE_IND) {
-                    appMode = APP_NORMAL_MODE;
+                    appMode = WAITING_FOR_PLANT;
                 }
             } else if (millis() - alarmStartTime >= (short) currentConfig.alarmDuration * 1000) {
-                appMode = APP_NORMAL_MODE;
+                appMode = WAITING_FOR_PLANT;
             }
 
-            if (appMode == APP_NORMAL_MODE) {
-                // alarm is playing
+            if (appMode == WAITING_FOR_PLANT) {
+                digitalWrite(ALARM_PIN, LOW);
             }
             break;
-        case APP_MENU_MODE : {
+        case APP_CONFIG_MENU : {
             byte menuMode = Menu1.handleNavigation(getNavAction, refreshMenuDisplay);
 
             if (menuMode == MENU_EXIT) {
@@ -178,10 +215,10 @@ void loop() {
             break;
         }
         case APP_PROCESS_MENU_CMD : {
-            bool processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
+            byte processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
 
             if (processingComplete) {
-                appMode = APP_MENU_MODE;
+                appMode = APP_CONFIG_MENU;
                 // Unhighlight selected item
                 lcd.setCursor(0, 1);
                 strbuf[0] = ' '; // clear forward arrow
@@ -192,41 +229,33 @@ void loop() {
         }
         case APP_MENU_MODE_END :
             if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
-                appMode = APP_NORMAL_MODE;
+                appMode = WAITING_FOR_PLANT;
             }
             break;
     }
 }
 
-void setupAudio() {
-//    Serial.begin(9600);
-//
-    // UART to Serial Bridge Initialization
-    i2cuart.begin(9600);               //baudrate setting
-    i2cuart.pinMode(PIN_AUDIO_SWITCH,OUTPUT);  //Audio channel selection output. 0: Earphone R - WT2000 DACR ,
-//    //                                   Earphone L -WT2000 DACL
-//    //                                   Microphone - WT2000 MIC in
-//    //                                   WT2000 DACR - SIM900 Audio Input
-//    //                                1: Earphone R - SIM900 Audio Ouput
-//    //                                   Earphone L - SIM900 Audio Ouput
-//    //                                   Microphone - SIM900 Audio Input
-    i2cuart.digitalWrite(PIN_AUDIO_SWITCH,0);  //Set audio channel selection to 0, so sound played by WT2000 will be fed to earphone
-    myaudioshield.mode(WT2000_MODE_SINGLE);    //Set play mode to single shot mode
-    myaudioshield.channel(WT2000_CHANNEL_MIC);    //Set MIC input as the recording channel;
-//
-//    if (i2cuart.ping() !=1 ) {
-//        Serial.println("Error1: Can not connnect to SC16IS750");
-//        Serial.println("Please check the connectivity of SDA-A4, and SCL-A5 if you are a Uno Board.");
-//        Serial.println("You may need to connect A4 to SDA and A5 to SCL with wires if your board does not have SCL and SDA broke out.");
-//    }
+void printPlantTimeRemainder() {
+    lcd.setCursor(0,0);
+    char displaySecondsBuf[2];
+    inttostr(displaySecondsBuf, (totalBombPlantTime - (millis() - bombPlantStart)) / 1000);
+    fmt(strbuf, 2, "Planting.. ", displaySecondsBuf);
+    lcd.print(strbuf);
 }
 
+void printDefuseTimeRemainder() {
+    lcd.setCursor(0,0);
+    char displaySecondsBuf[2];
+    inttostr(displaySecondsBuf, (totalBombDefuseTime - (millis() - bombDefuseStart)) / 1000);
+    fmt(strbuf, 2, "Defusing.. ", displaySecondsBuf);
+    lcd.print(strbuf);
+}
 
 //----------------------------------------------------------------------
 // Callback to convert button press to navigation action.
-unsigned char getNavAction() {
-    unsigned char navAction = 0;
-    unsigned char currentItemHasChildren = Menu1.currentItemHasChildren();
+byte getNavAction() {
+    byte navAction = 0;
+    byte currentItemHasChildren = Menu1.currentItemHasChildren();
 
     if (btn == BUTTON_UP_PRESSED || btn == BUTTON_UP_LONG_PRESSED) navAction = MENU_ITEM_PREV;
     else if (btn == BUTTON_DOWN_PRESSED || btn == BUTTON_DOWN_LONG_PRESSED) navAction = MENU_ITEM_NEXT;
@@ -246,7 +275,7 @@ void printTimerValue(byte timerIdx, bool showTimerName) {
 
         inttostr(intbuf, timerIdx + 1);
 
-        fmt(strbuf, 2, "Timer ", intbuf);
+        fmt(strbuf, 2, "Bomb ", intbuf);
         lcd.print(strbuf);
     }
 
@@ -460,3 +489,4 @@ void refreshMenuDisplay(byte refreshMode) {
         }
     }
 }
+

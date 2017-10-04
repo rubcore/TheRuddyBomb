@@ -1,6 +1,9 @@
 #ifndef THERUDDYBOMB_LIBRARY_H
 #define THERUDDYBOMB_LIBRARY_H
 
+static const int totalBombPlantTime = 10000;
+static const int totalBombDefuseTime = 10000;
+
 void initTimers();
 
 // Callback to refresh display during menu navigation, using parameter of type enum DisplayRefreshMode.
@@ -10,7 +13,7 @@ void refreshMenuDisplay (byte refreshMode);
 // to be modified accordingly.
 bool processMenuCommand(byte cmdId);
 
-unsigned char getNavAction();
+byte getNavAction();
 
 void printTimerValue(byte timerIdx, bool showTimerName = false);
 
