@@ -1,8 +1,8 @@
 #ifndef _cd_timer_menu_
 #define _cd_timer_menu_
 
-#include "MenuManager.h"
 #include <avr/pgmspace.h>
+#include <MenuManager.h>
 
 /*
 Generated using LCD Menu Builder at http://lcd-menu-bulder.cohesivecomputing.co.uk/.

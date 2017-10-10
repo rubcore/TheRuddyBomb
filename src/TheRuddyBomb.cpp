@@ -1,7 +1,8 @@
 #include <LiquidCrystal.h>
-#include <Config.h>
-#include <LcdKeypad.h>
-#include <MenuData.h>
+#include <display/Config.h>
+#include <display/LcdKeypad.h>
+#include <display/menu/MenuData.h>
+#include <MenuManager.h>
 #include "TheRuddyBomb.h"
 
 enum AppModeValues {

@@ -1,7 +1,6 @@
 #include "Config.h"
 #include "LcdKeypad.h"
-#include "MenuData.h"
-#include <avr/eeprom.h>
+#include "menu/MenuData.h"
 
 const char NotImp[] = "Not Implemented";
 static char strbuf[LCD_COLS + 1];
