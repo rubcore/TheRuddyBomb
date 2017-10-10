@@ -79,6 +79,14 @@ char *Config::getFormattedStr(byte cmdId) {
             fmt(strbuf, 2, intbuf, "%");
             break;
         }
+        case mnuCmdBombArmTime : {
+            fmt(strbuf, 2, inttostr(intbuf, bombArmTime), " seconds");
+            break;
+        }
+        case mnuCmdBombDefuseTime : {
+            fmt(strbuf, 2, inttostr(intbuf, bombDefuseTime), " seconds");
+            break;
+        }
         default:
             strcpy(strbuf, NotImp);
             break;
@@ -134,6 +142,8 @@ void Config::setDefaults() {
     alarmDuration = 2;
     buttonBeep = true;
     displayBrightness = 4;
+    bombArmTime = 30;
+    bombDefuseTime = 30;
 }
 
 

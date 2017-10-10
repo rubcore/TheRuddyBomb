@@ -95,7 +95,7 @@ char *inttostr(char *dest, short integer)
     else if (integer > 9) idx = 1;
     else if (integer > 0) idx = 0;    
 
-    idx += sign;
+    idx += sign; 
     dest[idx+1] = 0;
     
     for (; idx >=0 && integer !=0; integer /= 10, idx--)

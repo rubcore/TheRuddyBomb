@@ -4,9 +4,6 @@
 #include <MenuData.h>
 #include "TheRuddyBomb.h"
 
-
-#define ALARM_PIN 2
-
 enum AppModeValues {
     SELECT_BOMB_TYPE,
     WAITING_FOR_PLANT,
@@ -14,7 +11,7 @@ enum AppModeValues {
     BOMB_DEFUSING,
     TIMER_RUNNING,
     APP_TIMER_FINISHED,
-    APP_CONFIG_MENU,
+    APP_MENU_MODE,
     APP_PROCESS_MENU_CMD,
     APP_MENU_MODE_END
 };
@@ -45,9 +42,6 @@ void printPlantTimeRemainder();
 void printDefuseTimeRemainder();
 
 void setup() {
-    pinMode(ALARM_PIN, OUTPUT);
-    digitalWrite(ALARM_PIN, LOW);
-
     backLightOn();
     // set up the LCD's number of columns and rows:
     lcd.begin(LCD_COLS, LCD_ROWS);
@@ -74,9 +68,7 @@ void loop() {
 
         if (btnFlags == BUTTON_PRESSED_IND)   // if any button pressed.
         {
-            digitalWrite(ALARM_PIN, HIGH);
-            delay(3);
-            digitalWrite(ALARM_PIN, LOW);
+            // TODO: make beep sound
         }
     }
 
@@ -91,6 +83,9 @@ void loop() {
             } else if (btn == BUTTON_DOWN_SHORT_RELEASE) {
                 currentTimerIdx = ++currentTimerIdx > 2 ? 2 : currentTimerIdx;
                 printTimerValue(currentTimerIdx, true);
+            } else if (btn == BUTTON_UP_LONG_PRESSED) {
+                refreshMenuDisplay(REFRESH_DESCEND);
+                appMode = APP_MENU_MODE;
             }
             break;
         case WAITING_FOR_PLANT :
@@ -111,7 +106,7 @@ void loop() {
             }
             break;
         case BOMB_PLANTING :
-            if (btn == BUTTON_SELECT_LONG_RELEASE) {
+            if (btn == BUTTON_SELECT_LONG_PRESSED) {
                 bombDefuseStart = millis();
 
                 lcd.clear();
@@ -122,7 +117,7 @@ void loop() {
             }
 
             printPlantTimeRemainder();
-            if (totalBombPlantTime <= (millis() - bombPlantStart)) {
+            if (currentConfig.bombArmTime <= ((millis() - bombPlantStart) / 1000)) {
                 lcd.clear();
                 lcd.setCursor(0, 0);
                 lcd.print("Bomb planted!");
@@ -133,7 +128,7 @@ void loop() {
             break;
         case BOMB_DEFUSING :
             printDefuseTimeRemainder();
-            if (totalBombDefuseTime <= (millis() - bombDefuseStart)) {
+            if (currentConfig.bombDefuseTime <= ((millis() - bombDefuseStart) / 1000)) {
                 lcd.clear();
                 lcd.setCursor(0, 0);
                 lcd.print("Bomb defused!");
@@ -165,7 +160,6 @@ void loop() {
                         if (timerCurrentValue[currentTimerIdx] <= 0) {
                             timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
                             alarmStartTime = millis();
-                            digitalWrite(ALARM_PIN, HIGH);
 
                             lcd.clear();
                             lcd.setCursor(0, 0);
@@ -190,11 +184,8 @@ void loop() {
                 appMode = WAITING_FOR_PLANT;
             }
 
-            if (appMode == WAITING_FOR_PLANT) {
-                digitalWrite(ALARM_PIN, LOW);
-            }
             break;
-        case APP_CONFIG_MENU : {
+        case APP_MENU_MODE : {
             byte menuMode = Menu1.handleNavigation(getNavAction, refreshMenuDisplay);
 
             if (menuMode == MENU_EXIT) {
@@ -218,7 +209,7 @@ void loop() {
             byte processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
 
             if (processingComplete) {
-                appMode = APP_CONFIG_MENU;
+                appMode = APP_MENU_MODE;
                 // Unhighlight selected item
                 lcd.setCursor(0, 1);
                 strbuf[0] = ' '; // clear forward arrow
@@ -229,16 +220,17 @@ void loop() {
         }
         case APP_MENU_MODE_END :
             if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
-                appMode = WAITING_FOR_PLANT;
+                appMode = SELECT_BOMB_TYPE;
             }
             break;
     }
+
 }
 
 void printPlantTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
-    inttostr(displaySecondsBuf, (totalBombPlantTime - (millis() - bombPlantStart)) / 1000);
+    inttostr(displaySecondsBuf, currentConfig.bombArmTime - ((millis() - bombPlantStart) / 1000));
     fmt(strbuf, 2, "Planting.. ", displaySecondsBuf);
     lcd.print(strbuf);
 }
@@ -246,7 +238,7 @@ void printPlantTimeRemainder() {
 void printDefuseTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
-    inttostr(displaySecondsBuf, (totalBombDefuseTime - (millis() - bombDefuseStart)) / 1000);
+    inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - ((millis() - bombPlantStart) / 1000));
     fmt(strbuf, 2, "Defusing.. ", displaySecondsBuf);
     lcd.print(strbuf);
 }
@@ -429,6 +421,34 @@ bool processMenuCommand(byte cmdId) {
                 currentConfig.displayBrightness--;
                 currentConfig.displayBrightness = constrain(currentConfig.displayBrightness, 1, 4);
                 setBacklightBrightness(currentConfig.displayBrightness);
+            } else {
+                configChanged = false;
+            }
+            break;
+        case mnuCmdBombArmTime:
+            configChanged = true;
+            if (btn == BUTTON_UP_PRESSED) {
+                currentConfig.bombArmTime = ++currentConfig.bombArmTime;
+            } else if (btn == BUTTON_UP_LONG_PRESSED) {
+                currentConfig.bombArmTime += 10;
+            } else if (btn == BUTTON_DOWN_PRESSED) {
+                currentConfig.bombArmTime = --currentConfig.bombArmTime;
+            } else if (btn == BUTTON_DOWN_LONG_PRESSED) {
+                currentConfig.bombArmTime -= 10;
+            } else {
+                configChanged = false;
+            }
+            break;
+        case mnuCmdBombDefuseTime:
+            configChanged = true;
+            if (btn == BUTTON_UP_PRESSED) {
+                currentConfig.bombDefuseTime = ++currentConfig.bombDefuseTime;
+            } else if (btn == BUTTON_UP_LONG_PRESSED) {
+                currentConfig.bombDefuseTime += 10;
+            } else if (btn == BUTTON_DOWN_PRESSED) {
+                currentConfig.bombDefuseTime = --currentConfig.bombDefuseTime;
+            } else if (btn == BUTTON_DOWN_LONG_PRESSED) {
+                currentConfig.bombDefuseTime -= 10;
             } else {
                 configChanged = false;
             }

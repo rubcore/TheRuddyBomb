@@ -1,9 +1,6 @@
 #ifndef THERUDDYBOMB_LIBRARY_H
 #define THERUDDYBOMB_LIBRARY_H
 
-static const int totalBombPlantTime = 10000;
-static const int totalBombDefuseTime = 10000;
-
 void initTimers();
 
 // Callback to refresh display during menu navigation, using parameter of type enum DisplayRefreshMode.
