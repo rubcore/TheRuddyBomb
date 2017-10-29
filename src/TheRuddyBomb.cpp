@@ -42,7 +42,26 @@ void printPlantTimeRemainder();
 
 void printDefuseTimeRemainder();
 
+uint8_t buzzerPin = 3; // the buzzer pin
+boolean tock = false;
+
+void playBombTickSound() {
+
+
+    if (!tock) {
+        tone(buzzerPin, 900, 500);
+        tock = true;
+    } else {
+        tone(buzzerPin, 600, 500);
+        tock = false;
+    }
+}
+
+
 void setup() {
+
+    pinMode(buzzerPin, OUTPUT);
+
     backLightOn();
     // set up the LCD's number of columns and rows:
     lcd.begin(LCD_COLS, LCD_ROWS);
@@ -154,6 +173,9 @@ void loop() {
                     timerFineGrainedCounter[currentTimerIdx] += msDelta;
 
                     if (timerFineGrainedCounter[currentTimerIdx] >= 1000) {
+
+                        playBombTickSound();
+
                         timerFineGrainedCounter[currentTimerIdx] -= 1000;
                         timerCurrentValue[currentTimerIdx] -= 1;
                         printTimerValue(currentTimerIdx);
@@ -167,6 +189,8 @@ void loop() {
                             lcd.print("Game over man");
                             lcd.setCursor(0, 1);
                             lcd.print("terrorists win");
+
+                            tone(buzzerPin, 1000, 1000); // your'e dead
 
                             appMode = APP_TIMER_FINISHED;
                         }
