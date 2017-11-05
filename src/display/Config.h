@@ -25,7 +25,6 @@ class Config
     long timer2ReloadValue;
     long timer3ReloadValue;
     
-    int alarmDuration;       // in seconds
     bool buttonBeep;          // true/false
     byte displayBrightness;   // 1=25%, 2=50%, 3=75%, 4=100%
     int bombArmTime;

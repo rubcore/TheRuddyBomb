@@ -62,9 +62,6 @@ char *Config::getFormattedStr(byte cmdId) {
         case mnuCmdResetToDefaults:
             strbuf[0] = 0;
             break;
-        case mnuCmdAlarmDuration:
-            fmt(strbuf, 2, inttostr(intbuf, alarmDuration), " seconds");
-            break;
         case mnuCmdButtonBeep : {
             if (buttonBeep) {
                 fmt(strbuf, 1, "on");
@@ -147,7 +144,6 @@ void Config::setDefaults() {
     timer1ReloadValue = 30;
     timer2ReloadValue = 60;
     timer3ReloadValue = 5 * 60;
-    alarmDuration = 2;
     buttonBeep = true;
     displayBrightness = 4;
     bombArmTime = 30;

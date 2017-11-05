@@ -22,7 +22,6 @@ enum cd_timer_menuCommandId {
     mnuCmdT3Hours,
     mnuCmdT3Mins,
     mnuCmdT3Secs,
-    mnuCmdAlarmDuration,
     mnuCmdButtonBeep,
     mnuCmdCountdownBeepConstant,
     mnuCmdDisplayBrightness,
@@ -67,7 +66,6 @@ PROGMEM const MenuItem cd_timer_menu_List_3[] = {
 PROGMEM const char cd_timer_menu_1[] = "Bomb1 Profile";
 PROGMEM const char cd_timer_menu_2[] = "Bomb2 Profile";
 PROGMEM const char cd_timer_menu_3[] = "Bomb3 Profile";
-PROGMEM const char cd_timer_menu_4[] = "Alarm Duration";
 PROGMEM const char cd_timer_menu_5[] = "Button Beep";
 PROGMEM const char cd_timer_menu_6[] = "Countdown beep";
 PROGMEM const char cd_timer_menu_7[] = "LCD backlight";
@@ -84,7 +82,6 @@ PROGMEM const MenuItem cd_timer_menu_Root[] = {{mnuCmdBomb1Root,                
                                                {mnuCmdBomb3Root,                cd_timer_menu_3, cd_timer_menu_List_3,
                                                        menuCount(cd_timer_menu_List_3)
                                                },
-                                               {mnuCmdAlarmDuration,            cd_timer_menu_4},
                                                {mnuCmdButtonBeep,               cd_timer_menu_5},
                                                {mnuCmdCountdownBeepConstant,    cd_timer_menu_6},
                                                {mnuCmdDisplayBrightness,        cd_timer_menu_7},

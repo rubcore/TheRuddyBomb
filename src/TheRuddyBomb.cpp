@@ -206,8 +206,6 @@ void loop() {
                 if (btnFlags == BUTTON_SHORT_RELEASE_IND || btnFlags == BUTTON_LONG_RELEASE_IND) {
                     appMode = WAITING_FOR_PLANT;
                 }
-            } else if (millis() - alarmStartTime >= (short) currentConfig.alarmDuration * 1000) {
-                appMode = WAITING_FOR_PLANT;
             }
 
             break;
@@ -413,16 +411,6 @@ bool processMenuCommand(byte cmdId) {
                 currentConfig.timer3ReloadValue = addToTime(1, currentConfig.timer3ReloadValue);
             } else if (btn == BUTTON_DOWN_PRESSED || btn == BUTTON_DOWN_LONG_PRESSED) {
                 currentConfig.timer3ReloadValue = addToTime(-1, currentConfig.timer3ReloadValue);
-            } else {
-                configChanged = false;
-            }
-            break;
-        case mnuCmdAlarmDuration:
-            configChanged = true;
-            if (btn == BUTTON_UP_PRESSED || btn == BUTTON_UP_LONG_PRESSED) {
-                currentConfig.alarmDuration = ++currentConfig.alarmDuration > 10 ? 10 : currentConfig.alarmDuration;
-            } else if (btn == BUTTON_DOWN_PRESSED || btn == BUTTON_DOWN_LONG_PRESSED) {
-                currentConfig.alarmDuration = --currentConfig.alarmDuration < 1 ? 1 : currentConfig.alarmDuration;
             } else {
                 configChanged = false;
             }
