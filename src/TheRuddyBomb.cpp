@@ -127,7 +127,7 @@ void loop() {
             }
             break;
         case BOMB_PLANTING :
-            if (btn == BUTTON_SELECT_LONG_PRESSED) {
+            if (btn == BUTTON_SELECT_SHORT_RELEASE) {
                 bombDefuseStart = millis();
 
                 lcd.clear();
@@ -148,6 +148,16 @@ void loop() {
             }
             break;
         case BOMB_DEFUSING :
+            if (btn == BUTTON_SELECT_SHORT_RELEASE) {
+                bombPlantStart = millis();
+
+                lcd.clear();
+                printPlantTimeRemainder();
+
+                appMode = BOMB_PLANTING;
+                break;
+            }
+
             printDefuseTimeRemainder();
             if (currentConfig.bombDefuseTime <= ((millis() - bombDefuseStart) / 1000)) {
                 lcd.clear();
