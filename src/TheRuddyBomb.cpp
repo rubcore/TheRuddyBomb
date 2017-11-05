@@ -254,17 +254,15 @@ void loop() {
 void printPlantTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
-    inttostr(displaySecondsBuf, currentConfig.bombArmTime - ((millis() - bombPlantStart) / 1000));
-    fmt(strbuf, 2, "Planting.. ", displaySecondsBuf);
-    lcd.print(strbuf);
+    char *plantTime = fmt(strbuf, 2, "Planting.. ", inttostr(displaySecondsBuf, currentConfig.bombArmTime - ((millis() - bombPlantStart) / 1000)));
+    lcd.print(rpad(strbuf, plantTime));
 }
 
 void printDefuseTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
-    inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - ((millis() - bombPlantStart) / 1000));
-    fmt(strbuf, 2, "Defusing.. ", displaySecondsBuf);
-    lcd.print(strbuf);
+    char *defuseTime = fmt(strbuf, 2, "Defusing.. ", inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - ((millis() - bombDefuseStart) / 1000)));
+    lcd.print(rpad(strbuf, defuseTime));
 }
 
 //----------------------------------------------------------------------
