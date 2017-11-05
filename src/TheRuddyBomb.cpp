@@ -47,13 +47,14 @@ boolean tock = false;
 
 void playBombTickSound() {
 
-
-    if (!tock) {
-        tone(buzzerPin, 900, 500);
-        tock = true;
-    } else {
-        tone(buzzerPin, 600, 500);
-        tock = false;
+    if (currentConfig.countDownBeepConstant || timerCurrentValue[currentTimerIdx] <= 10) {
+        if (!tock) {
+            tone(buzzerPin, 900, 500);
+            tock = true;
+        } else {
+            tone(buzzerPin, 600, 500);
+            tock = false;
+        }
     }
 }
 
@@ -88,7 +89,7 @@ void loop() {
 
         if (btnFlags == BUTTON_PRESSED_IND)   // if any button pressed.
         {
-            // TODO: make beep sound
+            tone(buzzerPin, 200, 100);
         }
     }
 
@@ -432,6 +433,16 @@ bool processMenuCommand(byte cmdId) {
                 currentConfig.buttonBeep = true;
             } else if (btn == BUTTON_DOWN_PRESSED || btn == BUTTON_DOWN_LONG_PRESSED) {
                 currentConfig.buttonBeep = false;
+            } else {
+                configChanged = false;
+            }
+            break;
+        case mnuCmdCountdownBeepConstant:
+            configChanged = true;
+            if (btn == BUTTON_UP_PRESSED) {
+                currentConfig.countDownBeepConstant = true;
+            } else if (btn == BUTTON_DOWN_PRESSED) {
+                currentConfig.countDownBeepConstant = false;
             } else {
                 configChanged = false;
             }

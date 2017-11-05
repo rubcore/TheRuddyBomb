@@ -24,6 +24,7 @@ enum cd_timer_menuCommandId {
     mnuCmdT3Secs,
     mnuCmdAlarmDuration,
     mnuCmdButtonBeep,
+    mnuCmdCountdownBeepConstant,
     mnuCmdDisplayBrightness,
     mnuCmdBombArmTime,
     mnuCmdBombDefuseTime,
@@ -68,26 +69,29 @@ PROGMEM const char cd_timer_menu_2[] = "Bomb2 Profile";
 PROGMEM const char cd_timer_menu_3[] = "Bomb3 Profile";
 PROGMEM const char cd_timer_menu_4[] = "Alarm Duration";
 PROGMEM const char cd_timer_menu_5[] = "Button Beep";
-PROGMEM const char cd_timer_menu_6[] = "LCD backlight";
-PROGMEM const char cd_timer_menu_7[] = "Bomb arm time";
-PROGMEM const char cd_timer_menu_8[] = "Bomb defuse time";
-PROGMEM const char cd_timer_menu_9[] = "Reset";
-PROGMEM const MenuItem cd_timer_menu_Root[] = {{mnuCmdBomb1Root,         cd_timer_menu_1, cd_timer_menu_List_1, menuCount(
-                                                                                                                        cd_timer_menu_List_1)
+PROGMEM const char cd_timer_menu_6[] = "Countdown beep";
+PROGMEM const char cd_timer_menu_7[] = "LCD backlight";
+PROGMEM const char cd_timer_menu_8[] = "Bomb arm time";
+PROGMEM const char cd_timer_menu_9[] = "Bomb defuse time";
+PROGMEM const char cd_timer_menu_reset[] = "Reset";
+
+PROGMEM const MenuItem cd_timer_menu_Root[] = {{mnuCmdBomb1Root,                cd_timer_menu_1, cd_timer_menu_List_1,
+                                                       menuCount(cd_timer_menu_List_1)
                                                },
-                                               {mnuCmdBomb2Root,         cd_timer_menu_2, cd_timer_menu_List_2, menuCount(
-                                                                                                                        cd_timer_menu_List_2)
+                                               {mnuCmdBomb2Root,                cd_timer_menu_2, cd_timer_menu_List_2,
+                                                       menuCount(cd_timer_menu_List_2)
                                                },
-                                               {mnuCmdBomb3Root,         cd_timer_menu_3, cd_timer_menu_List_3, menuCount(
-                                                                                                                        cd_timer_menu_List_3)
+                                               {mnuCmdBomb3Root,                cd_timer_menu_3, cd_timer_menu_List_3,
+                                                       menuCount(cd_timer_menu_List_3)
                                                },
-                                               {mnuCmdAlarmDuration,     cd_timer_menu_4},
-                                               {mnuCmdButtonBeep,        cd_timer_menu_5},
-                                               {mnuCmdDisplayBrightness, cd_timer_menu_6},
-                                               {mnuCmdBombArmTime,       cd_timer_menu_7},
-                                               {mnuCmdBombDefuseTime,    cd_timer_menu_8},
-                                               {mnuCmdResetToDefaults,   cd_timer_menu_9},
-                                               {mnuCmdBack,              cd_timer_menu_exit}};
+                                               {mnuCmdAlarmDuration,            cd_timer_menu_4},
+                                               {mnuCmdButtonBeep,               cd_timer_menu_5},
+                                               {mnuCmdCountdownBeepConstant,    cd_timer_menu_6},
+                                               {mnuCmdDisplayBrightness,        cd_timer_menu_7},
+                                               {mnuCmdBombArmTime,              cd_timer_menu_8},
+                                               {mnuCmdBombDefuseTime,           cd_timer_menu_9},
+                                               {mnuCmdResetToDefaults,          cd_timer_menu_reset},
+                                               {mnuCmdBack,                     cd_timer_menu_exit}};
 
 #endif
 

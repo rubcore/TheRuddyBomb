@@ -65,13 +65,22 @@ char *Config::getFormattedStr(byte cmdId) {
         case mnuCmdAlarmDuration:
             fmt(strbuf, 2, inttostr(intbuf, alarmDuration), " seconds");
             break;
-        case mnuCmdButtonBeep :
+        case mnuCmdButtonBeep : {
             if (buttonBeep) {
                 fmt(strbuf, 1, "on");
             } else {
                 fmt(strbuf, 1, "off");
             }
             break;
+        }
+        case mnuCmdCountdownBeepConstant : {
+            if (countDownBeepConstant) {
+                fmt(strbuf, 1, "on");
+            } else {
+                fmt(strbuf, 1, "off");
+            }
+            break;
+        }
         case mnuCmdDisplayBrightness : {
             byte brightnessPC = ((unsigned short) displayBrightness * 100) / 4;
             inttostr(intbuf, brightnessPC);
@@ -143,6 +152,7 @@ void Config::setDefaults() {
     displayBrightness = 4;
     bombArmTime = 30;
     bombDefuseTime = 30;
+    countDownBeepConstant = true;
 }
 
 

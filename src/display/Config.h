@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 
-const char NameAndVersion[] = "V1.1";
+const char NameAndVersion[] = "V1.2";
 
 extern char *toTimeStr(char *buf, long timeval, char separator = ':');
 extern long addToTime(short delta, long timeval, long minval = 1, long maxval = (24*(long)3600)-1);
@@ -30,6 +30,7 @@ class Config
     byte displayBrightness;   // 1=25%, 2=50%, 3=75%, 4=100%
     int bombArmTime;
     int bombDefuseTime;
+    bool countDownBeepConstant;
     /// </configValues>
     
     char *getFormattedStr(byte cmdId);  // Returns formatted config value associated with menu command id.
