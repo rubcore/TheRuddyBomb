@@ -2,8 +2,57 @@
 #include <display/Config.h>
 #include <display/LcdKeypad.h>
 #include <display/menu/MenuData.h>
-#include <MenuManager.h>
 #include "TheRuddyBomb.h"
+
+byte p1[8] = {
+        0x10,
+        0x10,
+        0x10,
+        0x10,
+        0x10,
+        0x10,
+        0x10,
+        0x10};
+
+byte p2[8] = {
+        0x18,
+        0x18,
+        0x18,
+        0x18,
+        0x18,
+        0x18,
+        0x18,
+        0x18};
+
+byte p3[8] = {
+        0x1C,
+        0x1C,
+        0x1C,
+        0x1C,
+        0x1C,
+        0x1C,
+        0x1C,
+        0x1C};
+
+byte p4[8] = {
+        0x1E,
+        0x1E,
+        0x1E,
+        0x1E,
+        0x1E,
+        0x1E,
+        0x1E,
+        0x1E};
+
+byte p5[8] = {
+        0x1F,
+        0x1F,
+        0x1F,
+        0x1F,
+        0x1F,
+        0x1F,
+        0x1F,
+        0x1F};
 
 enum AppModeValues {
     SELECT_BOMB_TYPE,
@@ -21,7 +70,6 @@ byte appMode = SELECT_BOMB_TYPE;
 
 char strbuf[LCD_COLS + 1]; // one line of lcd display
 long timerCurrentValue[3];
-unsigned long alarmStartTime;
 short timerFineGrainedCounter[3];
 unsigned long lastMilliSecondTimerValue = 0;
 char currentTimerIdx = 0;
@@ -42,17 +90,27 @@ void printPlantTimeRemainder();
 
 void printDefuseTimeRemainder();
 
+void drawProgress(unsigned long currTime, double maxTime);
+
 uint8_t buzzerPin = 3; // the buzzer pin
 boolean tock = false;
+
+#define length 16.0
+
+double percent = 100.0;
+unsigned char b;
+unsigned int piece;
 
 void playBombTickSound() {
 
     if (currentConfig.countDownBeepConstant || timerCurrentValue[currentTimerIdx] <= 10) {
         if (!tock) {
             tone(buzzerPin, 900, 500);
+
             tock = true;
         } else {
             tone(buzzerPin, 600, 500);
+
             tock = false;
         }
     }
@@ -65,6 +123,13 @@ void setup() {
 
     backLightOn();
     // set up the LCD's number of columns and rows:
+
+    lcd.createChar(0, p1);
+    lcd.createChar(1, p2);
+    lcd.createChar(2, p3);
+    lcd.createChar(3, p4);
+    lcd.createChar(4, p5);
+
     lcd.begin(LCD_COLS, LCD_ROWS);
     currentConfig.load();
     setBacklightBrightness(currentConfig.displayBrightness);
@@ -73,13 +138,57 @@ void setup() {
     lcd.print("TheRuddyBomb");
     lcd.setCursor(0, 1);
     lcd.print("v 7.7.7");
-    delay(2500);
+    delay(1500);
 
     initTimers();
 
     printTimerValue(0, true);
 }
 
+void drawProgress(unsigned long currTime, double maxTime) {
+
+    lcd.setCursor(0, 1);
+    
+    percent = currTime / maxTime * 100.0;
+
+    double a = length / 100 * percent;
+
+    if (a >= 1) {
+        for (int i = 1; i < a; i++) {
+            lcd.print((char) 4);
+            b = i;
+        }
+        a = a - b;
+    }
+    piece = a * 5;
+
+    switch (piece) {
+
+        case 0:
+            break;
+
+        case 1:
+            lcd.print((char) 0);
+            break;
+
+        case 2:
+            lcd.print((char) 1);
+            break;
+
+        case 3:
+            lcd.print((char) 2);
+            break;
+
+        case 4:
+            lcd.print((char) 3);
+            break;
+
+        default:
+//            lcd.print("ERROR");
+            break;
+    }
+
+}
 
 void loop() {
     btn = getButton();
@@ -122,7 +231,6 @@ void loop() {
                 printPlantTimeRemainder();
 
                 lcd.setCursor(0, 1);
-                lcd.print("Watch your back");
                 appMode = BOMB_PLANTING;
             }
             break;
@@ -193,7 +301,6 @@ void loop() {
 
                         if (timerCurrentValue[currentTimerIdx] <= 0) {
                             timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
-                            alarmStartTime = millis();
 
                             lcd.clear();
                             lcd.setCursor(0, 0);
@@ -240,7 +347,7 @@ void loop() {
             break;
         }
         case APP_PROCESS_MENU_CMD : {
-            byte processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
+            bool processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
 
             if (processingComplete) {
                 appMode = APP_MENU_MODE;
@@ -261,18 +368,25 @@ void loop() {
 
 }
 
+
 void printPlantTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
-    char *plantTime = fmt(strbuf, 2, "Planting.. ", inttostr(displaySecondsBuf, currentConfig.bombArmTime - ((millis() - bombPlantStart) / 1000)));
+    unsigned long remainingTime = (millis() - bombPlantStart) / 1000;
+    char *plantTime = fmt(strbuf, 2, "Planting.. ", inttostr(displaySecondsBuf, currentConfig.bombArmTime - remainingTime));
+
     lcd.print(rpad(strbuf, plantTime));
+    drawProgress(remainingTime, (double) currentConfig.bombArmTime);
 }
 
 void printDefuseTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
-    char *defuseTime = fmt(strbuf, 2, "Defusing.. ", inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - ((millis() - bombDefuseStart) / 1000)));
+    unsigned long remainingTime = (millis() - bombDefuseStart) / 1000;
+    char *defuseTime = fmt(strbuf, 2, "Defusing.. ", inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - remainingTime));
+
     lcd.print(rpad(strbuf, defuseTime));
+    drawProgress(remainingTime, (double) currentConfig.bombDefuseTime);
 }
 
 //----------------------------------------------------------------------
