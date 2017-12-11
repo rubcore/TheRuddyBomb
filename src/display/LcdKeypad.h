@@ -65,7 +65,7 @@ extern void lcdBacklightISR();
 
 
 // Convert integer to string. Doesn't really belong here, should be somewhere else.
-extern char *inttostr(char *dest, short integer);
+extern char *inttostr(char *dest, int integer);
 
 // Apply left padding to string.
 extern char *lpad (char *dest, const char *str, char chr = ' ', unsigned char width = LCD_COLS);
