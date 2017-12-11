@@ -60,7 +60,6 @@ enum AppModeValues {
     BOMB_PLANTING,
     BOMB_DEFUSING,
     TIMER_RUNNING,
-    APP_TIMER_FINISHED,
     APP_MENU_MODE,
     APP_PROCESS_MENU_CMD,
     APP_MENU_MODE_END
@@ -141,14 +140,12 @@ void setup() {
     delay(1500);
 
     initTimers();
-
-    printTimerValue(0, true);
 }
 
 void drawProgress(unsigned long currTime, double maxTime) {
 
     lcd.setCursor(0, 1);
-    
+
     percent = currTime / maxTime * 100.0;
 
     double a = length / 100 * percent;
@@ -193,7 +190,7 @@ void drawProgress(unsigned long currTime, double maxTime) {
 void loop() {
     btn = getButton();
 
-    if (btn && currentConfig.buttonBeep && appMode != APP_TIMER_FINISHED) {
+    if (btn && currentConfig.buttonBeep) {
         byte btnFlags = btn & 192;
 
         if (btnFlags == BUTTON_PRESSED_IND)   // if any button pressed.
@@ -206,6 +203,9 @@ void loop() {
         case SELECT_BOMB_TYPE :
             // start selected timer
             if (btn == BUTTON_SELECT_SHORT_RELEASE) {
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Plant the bomb!");
                 appMode = WAITING_FOR_PLANT;
             } else if (btn == BUTTON_UP_SHORT_RELEASE) {
                 currentTimerIdx = static_cast<char>(--currentTimerIdx < 0 ? 0 : currentTimerIdx);
@@ -220,9 +220,7 @@ void loop() {
             break;
         case WAITING_FOR_PLANT :
             // game started. wait for someone to plant the bomb
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print("Plant me!");
+            initTimers();
 
             if (btn == BUTTON_SELECT_SHORT_RELEASE) {
                 bombPlantStart = millis();
@@ -276,7 +274,7 @@ void loop() {
                 appMode = WAITING_FOR_PLANT;
             }
             break;
-        case TIMER_RUNNING :
+        case TIMER_RUNNING : {
             if (btn == BUTTON_SELECT_LONG_RELEASE) {
                 bombDefuseStart = millis();
 
@@ -302,6 +300,8 @@ void loop() {
                         if (timerCurrentValue[currentTimerIdx] <= 0) {
                             timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
 
+                            appMode = SELECT_BOMB_TYPE;
+
                             lcd.clear();
                             lcd.setCursor(0, 0);
                             lcd.print("Game over man");
@@ -310,22 +310,15 @@ void loop() {
 
                             tone(buzzerPin, 1000, 1000); // your'e dead
 
-                            appMode = APP_TIMER_FINISHED;
+                            delay(2000);
+
+                            break;
                         }
                     }
                 }
             }
             break;
-        case APP_TIMER_FINISHED:
-            if (btn) {
-                byte btnFlags = btn & 192;
-
-                if (btnFlags == BUTTON_SHORT_RELEASE_IND || btnFlags == BUTTON_LONG_RELEASE_IND) {
-                    appMode = WAITING_FOR_PLANT;
-                }
-            }
-
-            break;
+        }
         case APP_MENU_MODE : {
             byte menuMode = Menu1.handleNavigation(getNavAction, refreshMenuDisplay);
 
@@ -346,6 +339,7 @@ void loop() {
             }
             break;
         }
+
         case APP_PROCESS_MENU_CMD : {
             bool processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
 
@@ -359,11 +353,12 @@ void loop() {
             }
             break;
         }
-        case APP_MENU_MODE_END :
+        case APP_MENU_MODE_END : {
             if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
                 appMode = SELECT_BOMB_TYPE;
             }
             break;
+        }
     }
 
 }
@@ -373,7 +368,8 @@ void printPlantTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
     unsigned long remainingTime = (millis() - bombPlantStart) / 1000;
-    char *plantTime = fmt(strbuf, 2, "Planting.. ", inttostr(displaySecondsBuf, currentConfig.bombArmTime - remainingTime));
+    char *plantTime = fmt(strbuf, 2, "Planting.. ",
+                          inttostr(displaySecondsBuf, currentConfig.bombArmTime - remainingTime));
 
     lcd.print(rpad(strbuf, plantTime));
     drawProgress(remainingTime, (double) currentConfig.bombArmTime);
@@ -383,7 +379,8 @@ void printDefuseTimeRemainder() {
     lcd.setCursor(0, 0);
     char displaySecondsBuf[2];
     unsigned long remainingTime = (millis() - bombDefuseStart) / 1000;
-    char *defuseTime = fmt(strbuf, 2, "Defusing.. ", inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - remainingTime));
+    char *defuseTime = fmt(strbuf, 2, "Defusing.. ",
+                           inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - remainingTime));
 
     lcd.print(rpad(strbuf, defuseTime));
     drawProgress(remainingTime, (double) currentConfig.bombDefuseTime);
@@ -424,6 +421,8 @@ void printTimerValue(byte timerIdx, bool showTimerName) {
 
 
 void initTimers() {
+    lastMilliSecondTimerValue = 0;
+
     timerCurrentValue[0] = currentConfig.timer1ReloadValue;
     timerCurrentValue[1] = currentConfig.timer2ReloadValue;
     timerCurrentValue[2] = currentConfig.timer3ReloadValue;
