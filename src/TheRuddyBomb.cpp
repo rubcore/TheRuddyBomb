@@ -87,14 +87,16 @@ void printPlantTimeRemainder();
 
 void printDefuseTimeRemainder();
 
-void drawProgress(int currTime, double maxTime);
+void drawProgress(unsigned long currTime, double maxTime);
 
 uint8_t buzzerPin = 3; // the buzzer pin
 boolean tock = false;
 
+#define length 16.0
+
 double percent = 100.0;
-int b;
-unsigned int fillType;
+unsigned char existingDrawn;
+unsigned int character;
 
 void playBombTickSound() {
 
@@ -142,51 +144,48 @@ void setup() {
     Serial.begin(9600);
 }
 
-void drawProgress(int currTime, double maxTime) {
+void drawProgress(unsigned long currTime, double maxTime) {
 
     lcd.setCursor(0, 1);
 
     percent = currTime / maxTime * 100.0;
 
-    double colsToFill = (LCD_COLS / 100) * percent;
+    Serial.println("Progress: ");
+    Serial.print(percent);
+
+    double colsToFill = length / 100 * percent;
 
     if (colsToFill >= 1) {
-        for (int i = 1; i < colsToFill; i++) {
+        for (int i = 1; i <= colsToFill; i++) {
             lcd.print((char) 4);
-            Serial.println((char) 4);
-            b = i;
+            existingDrawn = i;
         }
-        colsToFill = colsToFill - b;
+        colsToFill = colsToFill - existingDrawn;
     }
-    fillType = colsToFill * 5;
+    character = colsToFill * 5;
 
-    switch (fillType) {
+    switch (character) {
 
         case 0:
             break;
 
         case 1:
             lcd.print((char) 0);
-            Serial.println((char) 0);
             break;
 
         case 2:
             lcd.print((char) 1);
-            Serial.println((char) 1);
             break;
 
         case 3:
             lcd.print((char) 2);
-            Serial.println((char) 2);
             break;
 
         case 4:
             lcd.print((char) 3);
-            Serial.println((char) 3);
             break;
 
         default:
-            Serial.println("No progress value");
 //            lcd.print("ERROR");
             break;
     }
@@ -266,72 +265,72 @@ void loop() {
                 }
             }
             break;
-        case BOMB_DEFUSING :
-            if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
-                Serial.println("BTN OFF");
-                bombDefuseStart = 0;
-
-                lcd.clear();
-                appMode = TIMER_RUNNING;
-            } else {
-                printDefuseTimeRemainder();
-
-                if (currentConfig.bombDefuseTime <= ((millis() - bombDefuseStart) / 1000)) {
-                    lcd.clear();
-                    lcd.setCursor(0, 0);
-                    lcd.print("Bomb defused!");
-
-                    lastMilliSecondTimerValue = 0;
-                    appMode = WAITING_FOR_PLANT;
-                }
-            }
-
-            break;
-        case TIMER_RUNNING : {
-            if (btn == BUTTON_SELECT_PRESSED) {
-                bombDefuseStart = millis();
-                lcd.clear();
-                lcd.setCursor(0, 0);
-
-                printDefuseTimeRemainder();
-                appMode = BOMB_DEFUSING;
-            } else {
-                short msDelta = (millis() - lastMilliSecondTimerValue);
-
-                if (msDelta > 0) {
-                    lastMilliSecondTimerValue = millis();
-                    timerFineGrainedCounter[currentTimerIdx] += msDelta;
-
-                    if (timerFineGrainedCounter[currentTimerIdx] >= 1000) {
-
-                        playBombTickSound();
-
-                        timerFineGrainedCounter[currentTimerIdx] -= 1000;
-                        timerCurrentValue[currentTimerIdx] -= 1;
-                        printTimerValue(currentTimerIdx);
-
-                        if (timerCurrentValue[currentTimerIdx] <= 0) {
-                            timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
-
-                            appMode = SELECT_BOMB_TYPE;
-
-                            lcd.clear();
-                            lcd.setCursor(0, 0);
-                            lcd.print("Game over man");
-                            lcd.setCursor(0, 1);
-                            lcd.print("terrorists win");
-
-                            tone(buzzerPin, 1000, 1000); // your'e dead
-
-                            delay(2000);
-
-                            break;
-                        }
-                    }
-                }
-            }
-            break;
-        }
+//        case BOMB_DEFUSING :
+//            if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
+//                Serial.println("BTN OFF");
+//                bombDefuseStart = 0;
+//
+//                lcd.clear();
+//                appMode = TIMER_RUNNING;
+//            } else {
+//                printDefuseTimeRemainder();
+//
+//                if (currentConfig.bombDefuseTime <= ((millis() - bombDefuseStart) / 1000)) {
+//                    lcd.clear();
+//                    lcd.setCursor(0, 0);
+//                    lcd.print("Bomb defused!");
+//
+//                    lastMilliSecondTimerValue = 0;
+//                    appMode = WAITING_FOR_PLANT;
+//                }
+//            }
+//
+//            break;
+//        case TIMER_RUNNING : {
+//            if (btn == BUTTON_SELECT_PRESSED) {
+//                bombDefuseStart = millis();
+//                lcd.clear();
+//                lcd.setCursor(0, 0);
+//
+//                printDefuseTimeRemainder();
+//                appMode = BOMB_DEFUSING;
+//            } else {
+//                short msDelta = (millis() - lastMilliSecondTimerValue);
+//
+//                if (msDelta > 0) {
+//                    lastMilliSecondTimerValue = millis();
+//                    timerFineGrainedCounter[currentTimerIdx] += msDelta;
+//
+//                    if (timerFineGrainedCounter[currentTimerIdx] >= 1000) {
+//
+//                        playBombTickSound();
+//
+//                        timerFineGrainedCounter[currentTimerIdx] -= 1000;
+//                        timerCurrentValue[currentTimerIdx] -= 1;
+//                        printTimerValue(currentTimerIdx);
+//
+//                        if (timerCurrentValue[currentTimerIdx] <= 0) {
+//                            timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
+//
+//                            appMode = SELECT_BOMB_TYPE;
+//
+//                            lcd.clear();
+//                            lcd.setCursor(0, 0);
+//                            lcd.print("Game over man");
+//                            lcd.setCursor(0, 1);
+//                            lcd.print("terrorists win");
+//
+//                            tone(buzzerPin, 1000, 1000); // your'e dead
+//
+//                            delay(2000);
+//
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
+//            break;
+//        }
         case APP_MENU_MODE : {
             byte menuMode = Menu1.handleNavigation(getNavAction, refreshMenuDisplay);
 
@@ -352,7 +351,6 @@ void loop() {
             }
             break;
         }
-
         case APP_PROCESS_MENU_CMD : {
             bool processingComplete = processMenuCommand(Menu1.getCurrentItemCmdId());
 
@@ -374,18 +372,14 @@ void loop() {
         }
     }
 
-    Serial.print("MODE: ");
-    Serial.println(appMode);
-
-
 }
 
 
 void printPlantTimeRemainder() {
-    Serial.println("Print plant time");
     char displaySecondsBuf[2];
     auto remainingTime = static_cast<int>((millis() - bombPlantStart) / 1000);
 
+    Serial.print("Plant remainder (s)");
     Serial.println(remainingTime);
 
     char *plantTime = fmt(strbuf, 2, "Planting.. ",
