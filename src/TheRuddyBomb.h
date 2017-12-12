@@ -12,7 +12,7 @@ bool processMenuCommand(byte cmdId);
 
 byte getNavAction();
 
-void printTimerValue(byte timerIdx, bool showTimerName = false);
+void printTimerValue(int timerIdx, bool showTimerName = false);
 
 void setupAudio();
 

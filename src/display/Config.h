@@ -33,7 +33,7 @@ class Config
     /// </configValues>
     
     char *getFormattedStr(byte cmdId);  // Returns formatted config value associated with menu command id.
-    long getTimerReloadValue(byte timerIdx);
+    long getTimerReloadValue(int timerIdx);
     void save();                        // Saves config to EEPROM.
     void load();                        // Loads config from EEPROM.
     void setDefaults();                 // Sets config to default values.

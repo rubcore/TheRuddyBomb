@@ -100,7 +100,7 @@ char *Config::getFormattedStr(byte cmdId) {
 }
 
 //------------------------------------------------------------------------------
-long Config::getTimerReloadValue(byte timerIdx) {
+long Config::getTimerReloadValue(int timerIdx) {
     long reloadValue;
 
     switch (timerIdx) {

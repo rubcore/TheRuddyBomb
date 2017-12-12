@@ -71,7 +71,7 @@ char strbuf[LCD_COLS + 1]; // one line of lcd display
 long timerCurrentValue[3];
 short timerFineGrainedCounter[3];
 unsigned long lastMilliSecondTimerValue = 0;
-char currentTimerIdx = 0;
+int currentTimerIdx = 0;
 byte btn;
 Config currentConfig;
 
@@ -286,7 +286,7 @@ void loop() {
 //            }
 //
 //            break;
-//        case TIMER_RUNNING : {
+        case TIMER_RUNNING : {
 //            if (btn == BUTTON_SELECT_PRESSED) {
 //                bombDefuseStart = millis();
 //                lcd.clear();
@@ -295,42 +295,52 @@ void loop() {
 //                printDefuseTimeRemainder();
 //                appMode = BOMB_DEFUSING;
 //            } else {
-//                short msDelta = (millis() - lastMilliSecondTimerValue);
-//
-//                if (msDelta > 0) {
-//                    lastMilliSecondTimerValue = millis();
-//                    timerFineGrainedCounter[currentTimerIdx] += msDelta;
-//
-//                    if (timerFineGrainedCounter[currentTimerIdx] >= 1000) {
-//
-//                        playBombTickSound();
-//
-//                        timerFineGrainedCounter[currentTimerIdx] -= 1000;
-//                        timerCurrentValue[currentTimerIdx] -= 1;
-//                        printTimerValue(currentTimerIdx);
-//
-//                        if (timerCurrentValue[currentTimerIdx] <= 0) {
-//                            timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
-//
-//                            appMode = SELECT_BOMB_TYPE;
-//
-//                            lcd.clear();
-//                            lcd.setCursor(0, 0);
-//                            lcd.print("Game over man");
-//                            lcd.setCursor(0, 1);
-//                            lcd.print("terrorists win");
-//
-//                            tone(buzzerPin, 1000, 1000); // your'e dead
-//
-//                            delay(2000);
-//
-//                            break;
-//                        }
-//                    }
-//                }
-//            }
-//            break;
+            auto msDelta = (short) (millis() - lastMilliSecondTimerValue);
+            Serial.print("ms Delta: ");
+            Serial.println(msDelta);
+
+            if (msDelta > 0) {
+                lastMilliSecondTimerValue = millis();
+                timerFineGrainedCounter[currentTimerIdx] += msDelta;
+
+                Serial.print("Last mili timer");
+                Serial.println(lastMilliSecondTimerValue);
+
+                Serial.print("Timer counter");
+                Serial.println(timerFineGrainedCounter[currentTimerIdx]);
+
+                if (timerFineGrainedCounter[currentTimerIdx] >= 1000) {
+
+                    playBombTickSound();
+
+                    timerFineGrainedCounter[currentTimerIdx] -= 1000;
+                    timerCurrentValue[currentTimerIdx] -= 1;
+
+                    printTimerValue(currentTimerIdx);
+
+                    if (timerCurrentValue[currentTimerIdx] <= 0) {
+                        Serial.println("Timer finished");
+                        timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
+
+                        appMode = SELECT_BOMB_TYPE;
+
+                        lcd.clear();
+                        lcd.setCursor(0, 0);
+                        lcd.print("Game over man");
+                        lcd.setCursor(0, 1);
+                        lcd.print("terrorists win");
+
+                        tone(buzzerPin, 1000, 1000); // your'e dead
+
+                        delay(2000);
+
+                        break;
+                    }
+                }
+            }
 //        }
+            break;
+        }
         case APP_MENU_MODE : {
             byte menuMode = Menu1.handleNavigation(getNavAction, refreshMenuDisplay);
 
@@ -373,7 +383,6 @@ void loop() {
     }
 
 }
-
 
 void printPlantTimeRemainder() {
     char displaySecondsBuf[2];
@@ -419,7 +428,7 @@ byte getNavAction() {
 
 
 //----------------------------------------------------------------------
-void printTimerValue(byte timerIdx, bool showTimerName) {
+void printTimerValue(int timerIdx, bool showTimerName) {
     if (showTimerName) {
         lcd.clear();
         lcd.setCursor(0, 0);
