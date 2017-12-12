@@ -14,6 +14,22 @@ byte getNavAction();
 
 void printTimerValue(int timerIdx, bool showTimerName = false);
 
-void setupAudio();
+void printPlantTimeRemainder();
+
+void printDefuseTimeRemainder();
+
+void drawProgress(unsigned long currTime, double maxTime);
+
+void finishTimer();
+
+void tickDownTimer();
+
+void startDefuse();
+
+void plantBomb();
+
+void initiateBombPlant();
+
+void cancelBombPlant();
 
 #endif

@@ -4,55 +4,15 @@
 #include <display/menu/MenuData.h>
 #include "TheRuddyBomb.h"
 
-byte p1[8] = {
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10,
-        0x10};
+byte p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
 
-byte p2[8] = {
-        0x18,
-        0x18,
-        0x18,
-        0x18,
-        0x18,
-        0x18,
-        0x18,
-        0x18};
+byte p2[8] = {0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18};
 
-byte p3[8] = {
-        0x1C,
-        0x1C,
-        0x1C,
-        0x1C,
-        0x1C,
-        0x1C,
-        0x1C,
-        0x1C};
+byte p3[8] = {0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C};
 
-byte p4[8] = {
-        0x1E,
-        0x1E,
-        0x1E,
-        0x1E,
-        0x1E,
-        0x1E,
-        0x1E,
-        0x1E};
+byte p4[8] = {0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E};
 
-byte p5[8] = {
-        0x1F,
-        0x1F,
-        0x1F,
-        0x1F,
-        0x1F,
-        0x1F,
-        0x1F,
-        0x1F};
+byte p5[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};
 
 enum AppModeValues {
     SELECT_BOMB_TYPE,
@@ -67,7 +27,6 @@ enum AppModeValues {
 
 byte appMode = SELECT_BOMB_TYPE;
 
-char strbuf[LCD_COLS + 1]; // one line of lcd display
 long timerCurrentValue[3];
 short timerFineGrainedCounter[3];
 unsigned long lastMilliSecondTimerValue = 0;
@@ -83,12 +42,6 @@ MenuManager Menu1(cd_timer_menu_Root, menuCount(cd_timer_menu_Root));
 unsigned long bombPlantStart;
 unsigned long bombDefuseStart;
 
-void printPlantTimeRemainder();
-
-void printDefuseTimeRemainder();
-
-void drawProgress(unsigned long currTime, double maxTime);
-
 uint8_t buzzerPin = 3; // the buzzer pin
 boolean tock = false;
 
@@ -98,21 +51,20 @@ double percent = 100.0;
 unsigned char existingDrawn;
 unsigned int character;
 
+bool availableForDefuse = false;
+
 void playBombTickSound() {
 
     if (currentConfig.countDownBeepConstant || timerCurrentValue[currentTimerIdx] <= 10) {
         if (!tock) {
             tone(buzzerPin, 900, 500);
-
             tock = true;
         } else {
             tone(buzzerPin, 600, 500);
-
             tock = false;
         }
     }
 }
-
 
 void setup() {
 
@@ -142,54 +94,6 @@ void setup() {
     initTimers();
 
     Serial.begin(9600);
-}
-
-void drawProgress(unsigned long currTime, double maxTime) {
-
-    lcd.setCursor(0, 1);
-
-    percent = currTime / maxTime * 100.0;
-
-    Serial.println("Progress: ");
-    Serial.print(percent);
-
-    double colsToFill = length / 100 * percent;
-
-    if (colsToFill >= 1) {
-        for (int i = 1; i <= colsToFill; i++) {
-            lcd.print((char) 4);
-            existingDrawn = i;
-        }
-        colsToFill = colsToFill - existingDrawn;
-    }
-    character = colsToFill * 5;
-
-    switch (character) {
-
-        case 0:
-            break;
-
-        case 1:
-            lcd.print((char) 0);
-            break;
-
-        case 2:
-            lcd.print((char) 1);
-            break;
-
-        case 3:
-            lcd.print((char) 2);
-            break;
-
-        case 4:
-            lcd.print((char) 3);
-            break;
-
-        default:
-//            lcd.print("ERROR");
-            break;
-    }
-
 }
 
 void loop() {
@@ -228,46 +132,19 @@ void loop() {
             initTimers();
 
             if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED) {
-                Serial.println("Holding plant button");
-                bombPlantStart = millis();
-                lcd.clear();
-                lcd.setCursor(0, 0);
-
-                printPlantTimeRemainder();
-
-                appMode = BOMB_PLANTING;
+                initiateBombPlant();
             }
             break;
         case BOMB_PLANTING :
-            if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
-                bombPlantStart = 0;
-
-                lcd.clear();
-                lcd.setCursor(0, 0);
-                lcd.print("Plant the bomb!");
-
-                Serial.println("BTN OFF");
-
-                appMode = WAITING_FOR_PLANT;
-            } else {
-                Serial.println("BTN ON");
-                lcd.setCursor(0, 0);
-                printPlantTimeRemainder();
-                if (currentConfig.bombArmTime <= ((millis() - bombPlantStart) / 1000)) {
-                    bombPlantStart = 0;
-
-                    lcd.clear();
-                    lcd.setCursor(0, 0);
-                    lcd.print("Bomb planted!");
-
-                    lastMilliSecondTimerValue = millis();
-                    appMode = TIMER_RUNNING;
-                }
+            if (btn == BUTTON_SELECT_LONG_RELEASE) {
+                cancelBombPlant();
+            } else if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED) {
+                plantBomb();
             }
             break;
-//        case BOMB_DEFUSING :
+        case BOMB_DEFUSING :
 //            if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == BUTTON_SELECT_LONG_RELEASE) {
-//                Serial.println("BTN OFF");
+            Serial.println("Bomb defusing");
 //                bombDefuseStart = 0;
 //
 //                lcd.clear();
@@ -284,61 +161,37 @@ void loop() {
 //                    appMode = WAITING_FOR_PLANT;
 //                }
 //            }
-//
-//            break;
+
+            break;
         case TIMER_RUNNING : {
-//            if (btn == BUTTON_SELECT_PRESSED) {
-//                bombDefuseStart = millis();
-//                lcd.clear();
-//                lcd.setCursor(0, 0);
-//
-//                printDefuseTimeRemainder();
-//                appMode = BOMB_DEFUSING;
-//            } else {
-            auto msDelta = (short) (millis() - lastMilliSecondTimerValue);
-            Serial.print("ms Delta: ");
-            Serial.println(msDelta);
 
-            if (msDelta > 0) {
-                lastMilliSecondTimerValue = millis();
-                timerFineGrainedCounter[currentTimerIdx] += msDelta;
+            if (btn == BUTTON_SELECT_PRESSED && availableForDefuse) {
+                startDefuse();
+                break;
+            } else {
+                auto msDelta = (short) (millis() - lastMilliSecondTimerValue);
 
-                Serial.print("Last mili timer");
-                Serial.println(lastMilliSecondTimerValue);
+                if (msDelta > 0) {
+                    lastMilliSecondTimerValue = millis();
+                    timerFineGrainedCounter[currentTimerIdx] += msDelta;
 
-                Serial.print("Timer counter");
-                Serial.println(timerFineGrainedCounter[currentTimerIdx]);
+                    Serial.print("Last mili timer (ms): ");
+                    Serial.println(lastMilliSecondTimerValue);
 
-                if (timerFineGrainedCounter[currentTimerIdx] >= 1000) {
+                    Serial.print("Timer counter (ms): ");
+                    Serial.println(timerFineGrainedCounter[currentTimerIdx]);
 
-                    playBombTickSound();
+                    if (timerFineGrainedCounter[currentTimerIdx] >= 1000) {
 
-                    timerFineGrainedCounter[currentTimerIdx] -= 1000;
-                    timerCurrentValue[currentTimerIdx] -= 1;
+                        tickDownTimer();
 
-                    printTimerValue(currentTimerIdx);
-
-                    if (timerCurrentValue[currentTimerIdx] <= 0) {
-                        Serial.println("Timer finished");
-                        timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
-
-                        appMode = SELECT_BOMB_TYPE;
-
-                        lcd.clear();
-                        lcd.setCursor(0, 0);
-                        lcd.print("Game over man");
-                        lcd.setCursor(0, 1);
-                        lcd.print("terrorists win");
-
-                        tone(buzzerPin, 1000, 1000); // your'e dead
-
-                        delay(2000);
-
-                        break;
+                        if (timerCurrentValue[currentTimerIdx] <= 0) {
+                            finishTimer();
+                            break;
+                        }
                     }
                 }
             }
-//        }
             break;
         }
         case APP_MENU_MODE : {
@@ -354,6 +207,7 @@ void loop() {
                 // Highlight selected item (if not reset command).
                 if (Menu1.getCurrentItemCmdId() != mnuCmdResetToDefaults) {
                     lcd.setCursor(0, 1);
+                    char strbuf[LCD_COLS + 1]; // one line of lcd display
                     strbuf[0] = 0b01111110; // forward arrow representing input prompt.
                     strbuf[1] = 0;
                     lcd.print(strbuf);
@@ -368,6 +222,7 @@ void loop() {
                 appMode = APP_MENU_MODE;
                 // Unhighlight selected item
                 lcd.setCursor(0, 1);
+                char strbuf[LCD_COLS + 1]; // one line of lcd display
                 strbuf[0] = ' '; // clear forward arrow
                 strbuf[1] = 0;
                 lcd.print(strbuf);
@@ -384,32 +239,172 @@ void loop() {
 
 }
 
-void printPlantTimeRemainder() {
-    char displaySecondsBuf[2];
-    auto remainingTime = static_cast<int>((millis() - bombPlantStart) / 1000);
+void initiateBombPlant() {
+    Serial.println("Initiataing bomb plant");
+    lcd.clear();
 
-    Serial.print("Plant remainder (s)");
-    Serial.println(remainingTime);
+    bombPlantStart = millis();
 
-    char *plantTime = fmt(strbuf, 2, "Planting.. ",
-                          inttostr(displaySecondsBuf, currentConfig.bombArmTime - remainingTime));
+    printPlantTimeRemainder();
 
-    lcd.print(rpad(strbuf, plantTime));
-    drawProgress(remainingTime, (double) currentConfig.bombArmTime);
+    appMode = BOMB_PLANTING;
 }
 
-void printDefuseTimeRemainder() {
-    Serial.println("Print Defuse time");
+void cancelBombPlant() {
+    Serial.println("Bomb planting stopped");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Plant the bomb!");
+
+    appMode = WAITING_FOR_PLANT;
+}
+
+void plantBomb() {
+    Serial.println("Bomb planting");
+
+    printPlantTimeRemainder();
+
+    if (currentConfig.bombArmTime <= ((millis() - bombPlantStart) / 1000)) {
+        Serial.println("Bomb planted");
+        bombPlantStart = 0;
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Bomb planted!");
+
+        lastMilliSecondTimerValue = millis();
+        appMode = TIMER_RUNNING;
+    }
+}
+
+void startDefuse() {
+    Serial.print("Starting defuse");
+    lcd.clear();
+
+    bombDefuseStart = millis();
+
+    printDefuseTimeRemainder();
+
+    appMode = BOMB_DEFUSING;
+}
+
+void tickDownTimer() {
+    availableForDefuse = true; // wait 1 second and then say that people can defuse
+
+    playBombTickSound();
+
+    timerFineGrainedCounter[currentTimerIdx] -= 1000;
+    timerCurrentValue[currentTimerIdx] -= 1;
+
+    Serial.print("Current timer value remaining (s): ");
+    Serial.println(timerCurrentValue[currentTimerIdx]);
+
+    printTimerValue(currentTimerIdx);
+}
+
+void finishTimer() {
+    Serial.println("Timer finished");
+    timerCurrentValue[currentTimerIdx] = currentConfig.getTimerReloadValue(currentTimerIdx);
+
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Game over man");
+    lcd.setCursor(0, 1);
+    lcd.print("terrorists win");
+
+    tone(buzzerPin, 1000, 1000); // your'e dead
+
+    delay(2000);
+
+    appMode = SELECT_BOMB_TYPE;
+}
+
+void printPlantTimeRemainder() {
+    Serial.println("Printing plant time remainder");
+
+    lcd.setCursor(0, 0);
+
     char displaySecondsBuf[2];
-    auto remainingTime = static_cast<int>((millis() - bombDefuseStart) / 1000);
+    auto plantRemainingTime = static_cast<int>((millis() - bombPlantStart) / 1000);
 
-    Serial.println(remainingTime);
+    Serial.print("Plant remainder (s)");
+    Serial.println(plantRemainingTime);
 
-    char *defuseTime = fmt(strbuf, 2, "Defusing.. ",
-                           inttostr(displaySecondsBuf, currentConfig.bombDefuseTime - remainingTime));
+    char plantStrbuf[LCD_COLS + 1]; // one line of lcd display
+    char *plantTime = fmt(plantStrbuf, 2, "Planting.. ",
+                          inttostr(displaySecondsBuf, currentConfig.bombArmTime - plantRemainingTime));
 
-    lcd.print(rpad(strbuf, defuseTime));
-    drawProgress(remainingTime, (double) currentConfig.bombDefuseTime);
+    lcd.print(rpad(plantStrbuf, plantTime));
+    drawProgress(plantRemainingTime, (double) currentConfig.bombArmTime);
+}
+
+// TODO: Something in here is still breaking everything
+void printDefuseTimeRemainder() {
+    Serial.println("Printing defuse time remainder");
+
+    lcd.setCursor(0, 0);
+
+    char displayDefuseSecondsBuf[2];
+    auto defuseRemainingTime = static_cast<int>((millis() - bombDefuseStart) / 1000);
+
+    Serial.print("Defuse remainder (s)");
+    Serial.println(defuseRemainingTime);
+
+    char defuseStrbuf[LCD_COLS + 1]; // one line of lcd display
+    char *defuseTime = fmt(defuseStrbuf, 2, "Defusing.. ",
+                           inttostr(displayDefuseSecondsBuf, currentConfig.bombDefuseTime - defuseRemainingTime));
+
+    lcd.print(rpad(defuseStrbuf, defuseTime));
+    drawProgress(defuseRemainingTime, (double) currentConfig.bombDefuseTime);
+}
+
+void drawProgress(unsigned long currTime, double maxTime) {
+
+    lcd.setCursor(0, 1);
+
+    percent = currTime / maxTime * 100.0;
+
+    Serial.print("Progress (%): ");
+    Serial.println(percent);
+
+    double colsToFill = length / 100 * percent;
+
+    if (colsToFill >= 1) {
+        for (int i = 1; i <= colsToFill; i++) {
+            lcd.print((char) 4);
+            existingDrawn = i;
+        }
+        colsToFill = colsToFill - existingDrawn;
+    }
+    character = colsToFill * 5;
+
+    switch (character) {
+
+        case 0:
+            break;
+
+        case 1:
+            lcd.print((char) 0);
+            break;
+
+        case 2:
+            lcd.print((char) 1);
+            break;
+
+        case 3:
+            lcd.print((char) 2);
+            break;
+
+        case 4:
+            lcd.print((char) 3);
+            break;
+
+        default:
+            Serial.println("ERROR - Unknown character to print");
+            break;
+    }
+
 }
 
 //----------------------------------------------------------------------
@@ -429,6 +424,7 @@ byte getNavAction() {
 
 //----------------------------------------------------------------------
 void printTimerValue(int timerIdx, bool showTimerName) {
+    char strbuf[LCD_COLS + 1]; // one line of lcd display
     if (showTimerName) {
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -642,6 +638,7 @@ bool processMenuCommand(byte cmdId) {
     }
 
     if (configChanged && cmdId != mnuCmdResetToDefaults) {
+        char strbuf[LCD_COLS + 1]; // one line of lcd display
         lcd.setCursor(1, 1);
         lcd.print(rpad(strbuf, currentConfig.getFormattedStr(cmdId))); // Display config value.
     }
@@ -658,6 +655,7 @@ const char EmptyStr[] = "";
 // Callback to refresh display during menu navigation, using parameter of type enum DisplayRefreshMode.
 void refreshMenuDisplay(byte refreshMode) {
     char nameBuf[LCD_COLS + 1];
+    char strbuf[LCD_COLS + 1]; // one line of lcd display
 
     lcd.setCursor(0, 0);
     if (Menu1.currentItemHasChildren()) {
