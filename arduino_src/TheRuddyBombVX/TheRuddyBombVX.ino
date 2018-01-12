@@ -19,8 +19,16 @@
 #include <LiquidCrystal.h>
 #include "LcdKeypad.h"
 
-//Buzzer define statements
-#define buzzerPin 51
+//Define statements
+#define buzzerPin 53
+#define tiltPin 51
+#define PIRPin 49
+
+//delay variables for the filter for the tilt switch and PIR sensor.
+#define tiltDelay 30
+#define PIRDelay 30
+
+//buzzer tones
 #define menuTone 262
 #define detonatorTone 330
 #define plantDefuseTone 659
@@ -172,10 +180,13 @@ void setup() {
 
   //setup the buzzer pin.
   pinMode(buzzerPin, OUTPUT);
+  //PIR pin
+  pinMode(PIRPin, INPUT);
+  //tilt switch pin
+  pinMode(tiltPin,INPUT);
 
   //for debug
   Serial.begin(9600);
-
 
   // set up the LCD's number of columns and rows.
   lcd.begin(16, 2);
