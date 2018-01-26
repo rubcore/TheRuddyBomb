@@ -24,6 +24,9 @@
 #define tiltPin 51
 #define PIRPin 49
 
+//number of loops before tilt switch becomes active.
+#define tiltThresholdCount 10
+
 //delay variables for the filter for the tilt switch and PIR sensor.
 #define tiltDelay 30
 #define PIRDelay 30
@@ -112,6 +115,9 @@ char array_planting_msg[18] = "[Planting: 00s ]";
 char array_defusing_msg[18] = "[Defusing: 00s ]";
 char array_ticking_msg[18] = "[Planted: 00:00]";
 
+unsigned char tiltArray[tiltThresholdCount];
+unsigned char tiltArrayPos = 0;
+
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
@@ -175,6 +181,9 @@ void endOfGameCleanup(); //cleanup the screen and go back to the menu state.
 void applyPenalty(char type);
 void playShortTone(int freq, int len);
 
+void addTilt(); //add values to the tilt switch array
+boolean checkTilt(); //check values in the tilt switch array.
+
 //setup
 void setup() {
 
@@ -210,6 +219,11 @@ void setup() {
   defuse_time_pos = DEFUSE_time_default;
   penalty_time_pos = PENALTY_time_default;
 
+  //reset the tilt sensor array
+  for (int i = 0; i < tiltThresholdCount; ++i){
+    tiltArray[i] = 0;
+  }
+  
   //counter value variables
   current_time = 0;
   planting_time = 0;
@@ -246,6 +260,17 @@ void loop() {
 
       //get the button.
       btn = getButton();
+
+      //poll the tilt switch
+      addTilt();
+
+      //check state of tilt switch to indicate bomb state.
+      if (checkTilt()){
+        printtoScreen("     Moving!    ","                ");
+      }
+      else if (arming_in_progress == false){
+        printtoScreen("Plant the bomb! ","                ");
+      }
 
       //button pressed.
       if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED){
@@ -301,6 +326,11 @@ void loop() {
         drawProgress(temp_time, arm_time_set);
 
         printtoBot(temp_array_16);
+        
+        //if tilt switch is on, then kick attackers back to arm screen.
+        if (checkTilt()){
+          arming_in_progress = false;
+        }
 
         if (temp_time >= arm_time_set){
 
@@ -349,6 +379,14 @@ void loop() {
 
       //get the button
       btn = getButton();
+
+      //poll the tilt switch
+      addTilt();
+
+      //check state of tilt switch to indicate bomb state.
+      if (checkTilt()){
+        printtoBot("     Moving!    ");
+      }
 
       //setup the time remaining on the detonator.
       if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED){
@@ -402,6 +440,11 @@ void loop() {
 
         //BOMB DEFUSED
         printtoBot(temp_array_16);
+
+        //if tilt switch is on, then kick defenders back to arm screen.
+        if (checkTilt()){
+          disarming_in_progress = false;
+        }
 
         //if the timer exceeds the defuse time.
         if (temp_time >= defuse_time_set){
@@ -997,5 +1040,33 @@ void playShortTone(int freq, int len){
   tone(buzzerPin,freq); //turn on buzzer
   delay(len); //do a delay
   noTone(buzzerPin); //turn off buzzer
+}
+
+//add tilt switch
+void addTilt(){
+
+  //poll the tilt switch
+  tiltArray[tiltArrayPos] = digitalRead(tiltPin);
+
+  //set the tilt array position
+  ++tiltArrayPos;
+
+  //clear the tilt array position
+  if (tiltArrayPos == tiltThresholdCount) tiltArrayPos = 0;
+}
+
+//check the tilt switch
+boolean checkTilt(){
+
+  boolean check = false;
+
+  //loop through the array and set as needed
+  for (int i = 0; i < tiltThresholdCount; ++i){
+    if (tiltArray[i] == 0){
+      check = true;
+    }
+  }
+  
+  return !check;
 }
 
