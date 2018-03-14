@@ -1,0 +1,17 @@
+Search and Destroy
+
+Game overiew (Standard CS)
+
+Counter-Terrorists can win the round by running down the timer before the bomb is planted, while the Terrorists must plant the bomb at one of two bombsites (usually located near Counter-Terrorist spawn) and ensure detonation of the explosive. The secondary objective, which also secures a victory for either team, is to eliminate all members of the opposing team (however, if the bomb is already planted and all Terrorists are eliminated the round does not end until the bomb is defused or detonated). If the round time expires and the C-4 is not planted, the Counter-Terrorists win by default.
+
+The bomb can only be planted at a bombsite, of which there are two on every official map. In competitive mode, Counter-Terrorists may purchase a "defusal kit" that halves the time needed to defuse the bomb, taking 5 seconds instead of 10. While defusing, the player cannot reload weapons (in CS 1.6 and Condition Zero), underhand throw grenades, crouch, and switch fire modes otherwise, the defusal process must be restarted.
+
+
+Default settings
+
+Game Timer: 5:00
+Arm Time: 00:10
+Disarm: 00:10
+
+Moving an armed bomb detonates the bomb
+
