@@ -1,23 +1,25 @@
 /*
-  TheRuddyBombVX - Arduino Compilable - Short version 0.1.0
+  TheRuddyBombVX - Arduino Compilable
   FOR ATMEGA2560 on ARDUINO MEGA
-  Features:
-  - LCD + Buttons
-  - Buzzer
-
-  Features TODO:
-  - Tilt Switch
-  - LDR
  */
 //Function parameters
 
 //TIME in MILLISECONDS, use u_long.
-//Default settings set to 30s arm time, 5 minute detonation time, 30s defuse, 0s penalty.
+//Default settings set to:
+//10s arm time
+//40 second detonation time
+//10s defuse
+//5 minute game time
+//0s penalty.
+
 //Additional settings must be placed directly into array with the appropriate +1 to the count.
 
 // include the library code:
 #include <LiquidCrystal.h>
 #include "LcdKeypad.h"
+
+//VERSION
+#define VERSION "   ver. 1.0.1   "
 
 //Define statements
 #define buzzerPin 53
@@ -32,9 +34,13 @@
 #define PIRDelay 30
 
 //buzzer tones
+//menu selection and unarmed bomb
 #define menuTone 262
+//on detonation
 #define detonatorTone 330
+//whenever defusal or planting is in progress
 #define plantDefuseTone 659
+//start tone.
 #define startTone 524
 
 //misc declerations
@@ -42,8 +48,11 @@
 //the LCD screen has 16 squares.
 #define row_len 16.0
 
+//5 minutes 
+#define Global_Game_Time 300000
+
 //Bomb arm time
-#define ARM_time_default 1
+#define ARM_time_default 0
 #define ARM_time_count 3
 #define ARM_time_10s 10000
 #define ARM_time_30s 30000
@@ -52,21 +61,28 @@
 //Bomb trigger time
 #define TRIG_time_default 3
 #define TRIG_time_count 5
-#define TRIG_time_1m 60000
-#define TRIG_time_2m 120000
-#define TRIG_time_3m 180000
-#define TRIG_time_5m 300000
-#define TRIG_time_10m 600000
+//#define TRIG_time_1m 60000
+//#define TRIG_time_2m 120000
+//#define TRIG_time_3m 180000
+//#define TRIG_time_5m 300000
+//#define TRIG_time_10m 600000
+
+//CHANGE: shorter detonation times
+#define TRIG_time_10s 10000
+#define TRIG_time_20s 20000
+#define TRIG_time_30s 30000
+#define TRIG_time_40s 40000
+#define TRIG_time_50s 50000
 
 //Bomb defuse time
-#define DEFUSE_time_default 1
+#define DEFUSE_time_default 0
 #define DEFUSE_time_count 3
 #define DEFUSE_time_10s 10000
 #define DEFUSE_time_30s 30000
 #define DEFUSE_time_1m  60000
 
 //penalty time
-#define PENALTY_time_default 0
+#define PENALTY_time_default 1
 #define PENALTY_time_count 3
 #define PENALTY_time_5s 5000
 #define PENALTY_time_10s 10000
@@ -80,7 +96,7 @@ uint8_t p5[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};
 
 //array of times
 unsigned long armTimes[ARM_time_count] = {ARM_time_10s,ARM_time_30s,ARM_time_1m};
-unsigned long trigTimes[TRIG_time_count] = {TRIG_time_1m,TRIG_time_2m,TRIG_time_3m,TRIG_time_5m,TRIG_time_10m};
+unsigned long trigTimes[TRIG_time_count] = {TRIG_time_10s,TRIG_time_20s,TRIG_time_30s,TRIG_time_40s,TRIG_time_50s};
 unsigned long defuseTimes [DEFUSE_time_count] = {DEFUSE_time_10s,DEFUSE_time_30s,DEFUSE_time_1m};
 unsigned long penaltyTimes [PENALTY_time_count] = {0,PENALTY_time_5s,PENALTY_time_10s};
 
@@ -102,18 +118,28 @@ char trig_time_pos;
 char defuse_time_pos;
 char penalty_time_pos;
 
+//device settings
+boolean beep_if_unarmed = true;
+
+//5 minutes
+const unsigned long global_game_time = Global_Game_Time;
+unsigned long game_start_time = 0;
+
 //temporary array for printing.
 char temp_array_16[18] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 char temp_array_3[4] = {0,0,0,0};
+
+//Game Timer Bottom Row
+char global_timer_bar[18] = "G-00:00 B-00:00 ";
 
 //option display strings
 char temp_array_minute[18] = "<  00 Minutes  >";
 char temp_array_second[18] = "<  00 Seconds  >";
 
 //message display strings
-char array_planting_msg[18] = "[Planting: 00s ]";
-char array_defusing_msg[18] = "[Defusing: 00s ]";
-char array_ticking_msg[18] = "[Planted: 00:00]";
+char array_planting_msg[18] = "[   PLANTING   ]";
+char array_defusing_msg[18] = "[   DEFUSING   ]";
+char array_ticking_msg[18] = "[   PLANTED!   ]";
 
 unsigned char tiltArray[tiltThresholdCount];
 unsigned char tiltArrayPos = 0;
@@ -138,7 +164,7 @@ typedef enum MenuMode{
   SET_ARM_TIME,
   SET_TRIG_TIME,
   SET_DEFUSE_TIME,
-  SET_PENALTY_TME
+  SET_PENALTY_TIME
 } MenuMode;
 
 //Set the application modes
@@ -149,6 +175,10 @@ char btn; //the button that was pressed.
 
 //the menu setting function.
 void menuSettings();
+//The start of game routine.
+void startGame();
+//pre-start of the game routine.
+void preStartGame();
 
 //print to the screen.
 void printtoScreen(char*,char*);
@@ -174,15 +204,13 @@ void drawProgress(unsigned long currTime, double maxTime);
 void clearTempArray(); //added 27/12/27
 
 //end conditions.
-void attackersDetonate();
-void defendersDefuse();
+void attackersDetonate(); //T team win
+void defendersDefuse(); //CT team win
+void defendersStall(); //CT team win
 void endOfGameCleanup(); //cleanup the screen and go back to the menu state.
 
 void applyPenalty(char type);
 void playShortTone(int freq, int len);
-
-void addTilt(); //add values to the tilt switch array
-boolean checkTilt(); //check values in the tilt switch array.
 
 //setup
 void setup() {
@@ -230,9 +258,10 @@ void setup() {
   defusing_time = 0;
   
   // Print a message to the LCD.
-  //printtoScreen("  TheRuddyBomb  ","  ver. 7.7.7.X  ");
-  //delay(1500);
+  printtoScreen("  TheRuddyBomb  ",VERSION);
+  delay(1500);
   printtoScreen("  TheRuddyBomb  ", "   Bomb Ready   ");
+  delay(1000);
 
   //done setting up
 }
@@ -251,31 +280,86 @@ void loop() {
     boolean arming_in_progress = false;
     //temporary time.
     unsigned long temp_time = 0;
-    
-    //Write to the screen.
-    printtoScreen("Plant the bomb! ","                ");
+    //temporary time for the global counter
+    unsigned long temp_time_global = 0;
 
+    //get the start time.
+    game_start_time = millis();
+    
     //loop until we arm the bomb.
     while (true){
+
+      //check the global timer. If at any point 5 mins is up, the game is over.
+      if (millis() - game_start_time >= global_game_time){
+         defendersStall();
+         break;
+      }
 
       //get the button.
       btn = getButton();
 
-      //poll the tilt switch
-      addTilt();
-
-      //check state of tilt switch to indicate bomb state.
-      if (checkTilt()){
-        printtoScreen("     Moving!    ","                ");
+      //CHANGE HERE
+      //play Unarmed bomb tone.
+      //mod 10000 every 10 seconds 10% duty cycle.
+      if (!arming_in_progress && beep_if_unarmed){
+        if (millis() % 10000 <= 1000){
+          tone(buzzerPin,menuTone);
+        }
+        else{
+          noTone(buzzerPin);
+        }
       }
-      else if (arming_in_progress == false){
-        printtoScreen("Plant the bomb! ","                ");
+      
+      if (arming_in_progress == false){
+        //calculate the game global timer.
+        //calculate the time elapsed.
+        temp_time_global = global_game_time - (millis() - game_start_time);
+  
+        //divide out each increment and fill in the characters.
+        //fill in the characters.
+        char ten_minutes = 0;
+        char one_minute = 0;
+        char ten_seconds = 0;
+        char one_second = 0;
+  
+        while (temp_time_global >= 600000){
+          ++ten_minutes;
+          temp_time_global -= 600000;
+        }
+  
+        while (temp_time_global >= 60000){
+          ++one_minute;
+          temp_time_global -= 60000;
+        }
+  
+        while (temp_time_global >= 10000){
+          ++ten_seconds;
+          temp_time_global -= 10000;
+        }
+  
+        while (temp_time_global >= 1000){
+          ++one_second;
+          temp_time_global -= 1000;
+        }
+  
+        //fill in the message
+        global_timer_bar[2] = ten_minutes + '0';
+        global_timer_bar[3] = one_minute + '0';
+        global_timer_bar[5] = ten_seconds + '0';
+        global_timer_bar[6] = one_second + '0';
+        
+        //print to the screen
+        printtoTop("[  PLANT ME!   ]");
+        printtoBot(global_timer_bar);
       }
-
+        
       //button pressed.
       if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED){
         //set the flag
         arming_in_progress = true;
+
+        //blank the screen temporarily
+        printtoBot("                ");
 
         //Now start the bomb planting timer.
         //start the timer.
@@ -292,9 +376,6 @@ void loop() {
 
         //reset the array with spaces.
         clearTempArray();
-        
-        //Reset the screen.
-        printtoScreen("Plant the bomb! ","                ");
         
       }
       else if (arming_in_progress){
@@ -316,8 +397,8 @@ void loop() {
         Int2AsciiExt((unsigned int)((arm_time_set - temp_time)/1000));
 
         //print the time to the array.
-        array_planting_msg[11] = temp_array_3[1];
-        array_planting_msg[12] = temp_array_3[0];
+        //array_planting_msg[11] = temp_array_3[1];
+        //array_planting_msg[12] = temp_array_3[0];
         
         //print to the array top line.
         printtoTop(array_planting_msg);
@@ -327,11 +408,6 @@ void loop() {
 
         printtoBot(temp_array_16);
         
-        //if tilt switch is on, then kick attackers back to arm screen.
-        if (checkTilt()){
-          arming_in_progress = false;
-        }
-
         if (temp_time >= arm_time_set){
 
           temp_time = 0; //reset the temp time.
@@ -355,11 +431,12 @@ void loop() {
     
   }
   else if(currentMode == TIMER_RUNNING){
-    //2 cases: Either the detonator explodes
+    //3 cases: Either the detonator explodes
     //or the CT team defuses the bomb.
+    //or timer (5 mins) runs out.
 
     //set the output
-    printtoScreen("[   Planted!   ]","                ");
+    printtoScreen("[   PLANTED!   ]","                ");
 
     //start the countdown.
     //check millis.
@@ -372,21 +449,20 @@ void loop() {
     unsigned long temp_time = 0;
     unsigned long defuse_time = 0;
     unsigned long time_remaining = 0;
+    unsigned long temp_time_global = 0;
     boolean disarming_in_progress = false;
     
     //loop forever
     while (true){
 
+      //check the global timer. If at any point 5 mins is up, the game is over.
+      if (millis() - game_start_time >= global_game_time){
+         defendersStall();
+         break;
+      }
+
       //get the button
       btn = getButton();
-
-      //poll the tilt switch
-      addTilt();
-
-      //check state of tilt switch to indicate bomb state.
-      if (checkTilt()){
-        printtoBot("     Moving!    ");
-      }
 
       //setup the time remaining on the detonator.
       if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED){
@@ -428,8 +504,8 @@ void loop() {
         //convert to seconds remaining.
         Int2AsciiExt((unsigned int)((defuse_time_set - temp_time)/1000));
 
-        array_defusing_msg[11] = temp_array_3[1];
-        array_defusing_msg[12] = temp_array_3[0];
+        //array_defusing_msg[11] = temp_array_3[1];
+        //array_defusing_msg[12] = temp_array_3[0];
         
         //print to the array top line.
         printtoTop(array_defusing_msg);
@@ -440,11 +516,6 @@ void loop() {
 
         //BOMB DEFUSED
         printtoBot(temp_array_16);
-
-        //if tilt switch is on, then kick defenders back to arm screen.
-        if (checkTilt()){
-          disarming_in_progress = false;
-        }
 
         //if the timer exceeds the defuse time.
         if (temp_time >= defuse_time_set){
@@ -466,11 +537,12 @@ void loop() {
 
         //divide out each increment and fill in the characters.
         //fill in the characters.
-        char ten_minutes = 0;
-        char one_minute = 0;
+        //char ten_minutes = 0;
+        //char one_minute = 0;
         char ten_seconds = 0;
         char one_second = 0;
 
+        /*
         while (time_remaining >= 600000){
           ++ten_minutes;
           time_remaining -= 600000;
@@ -480,6 +552,7 @@ void loop() {
           ++one_minute;
           time_remaining -= 60000;
         }
+        */
 
         while (time_remaining >= 10000){
           ++ten_seconds;
@@ -492,14 +565,52 @@ void loop() {
         }
 
         //fill in the message
-        array_ticking_msg[10] = ten_minutes + '0';
-        array_ticking_msg[11] = one_minute + '0';
-        array_ticking_msg[13] = ten_seconds + '0';
-        array_ticking_msg[14] = one_second + '0';
+        //global_timer_bar[10] = ten_minutes + '0';
+        //global_timer_bar[11] = one_minute + '0';
+        global_timer_bar[13] = ten_seconds + '0';
+        global_timer_bar[14] = one_second + '0';
+
+        //calculate the game global timer.
+        //calculate the time elapsed.
+        temp_time_global = global_game_time - (millis() - game_start_time);
+  
+        //divide out each increment and fill in the characters.
+        //fill in the characters.
+        char ten_minutes = 0;
+        char one_minute = 0;
+        ten_seconds = 0;
+        one_second = 0;
+  
+        while (temp_time_global >= 600000){
+          ++ten_minutes;
+          temp_time_global -= 600000;
+        }
+  
+        while (temp_time_global >= 60000){
+          ++one_minute;
+          temp_time_global -= 60000;
+        }
+  
+        while (temp_time_global >= 10000){
+          ++ten_seconds;
+          temp_time_global -= 10000;
+        }
+  
+        while (temp_time_global >= 1000){
+          ++one_second;
+          temp_time_global -= 1000;
+        }
+  
+        //fill in the message
+        global_timer_bar[2] = ten_minutes + '0';
+        global_timer_bar[3] = one_minute + '0';
+        global_timer_bar[5] = ten_seconds + '0';
+        global_timer_bar[6] = one_second + '0';
 
         //print the array to the screen to indicate time remaining
-        printtoTop(array_ticking_msg);
-        printtoBot("                ");
+        //set the output array on top
+        printtoTop("[   PLANTED!   ]");
+        printtoBot(global_timer_bar);
 
         //1Hz detonator tone
         if (time_remaining >= 500) tone(buzzerPin,detonatorTone);
@@ -522,8 +633,94 @@ void loop() {
   }
 }
 
+//On the start screen.
+void preStartGame(){
+  printtoTop("[PRESS TO START]");
+
+  //set the current game parameters on the display screen
+  //set game timer.
+  //fill in the characters.
+  char ten_minutes = 0;
+  char one_minute = 0;
+  char ten_seconds = 0;
+  char one_second = 0;
+
+  unsigned long temp_time = global_game_time;
+
+  while (temp_time >= 600000){
+    ++ten_minutes;
+    temp_time -= 600000;
+  }
+
+  while (temp_time >= 60000){
+    ++one_minute;
+    temp_time -= 60000;
+  }
+
+  while (temp_time >= 10000){
+    ++ten_seconds;
+    temp_time -= 10000;
+  }
+
+  while (temp_time >= 1000){
+    ++one_second;
+    temp_time -= 1000;
+  }
+
+  //fill in the message
+  global_timer_bar[2] = ten_minutes + '0';
+  global_timer_bar[3] = one_minute + '0';
+  global_timer_bar[5] = ten_seconds + '0';
+  global_timer_bar[6] = one_second + '0';
+
+  //set bomb timer
+  ten_seconds = 0;
+  one_second = 0;
+
+  temp_time = trig_time_set;
+
+  while (temp_time >= 10000){
+    ++ten_seconds;
+    temp_time -= 10000;
+  }
+
+  while (temp_time >= 1000){
+    ++one_second;
+    temp_time -= 1000;
+  }
+
+  global_timer_bar[13] = ten_seconds + '0';
+  global_timer_bar[14] = one_second + '0';
+
+  printtoBot(global_timer_bar);
+
+}
+
+//start the game
+//This function is the start process.
+void startGame(){
+
+  printtoBot("                ");
+
+  //Delay 3 seconds with sound feedback
+  printtoTop("[STARTING IN: 3]");
+  playShortTone(menuTone,1000);
+  delay(750);
+  printtoTop("[STARTING IN: 2]");
+  playShortTone(menuTone,1000);
+  delay(750);
+  printtoTop("[STARTING IN: 1]");
+  playShortTone(menuTone,1000);
+  delay(750);
+  printtoTop("[  GAME START  ]");
+  playShortTone(startTone,1000);
+}
+
 //set bomb parameters.
 void menuSettings(){
+
+  //print the current settings.
+  preStartGame();
   
   //while true. Exit when the bomb is ready to be played.
   while (true){
@@ -551,13 +748,13 @@ void menuSettings(){
         defuseTimeAdjust(0);
       }
       else if (currentMenuMode == SET_DEFUSE_TIME){
-        currentMenuMode = SET_PENALTY_TME;
+        currentMenuMode = SET_PENALTY_TIME;
         printtoTop("Set Pen Time    ");
         penTimeAdjust(0);
       }
-      else if (currentMenuMode == SET_PENALTY_TME){
+      else if (currentMenuMode == SET_PENALTY_TIME){
         currentMenuMode = GAME_START;
-        printtoScreen("  TheRuddyBomb  ", "   Bomb Ready   ");
+        preStartGame();
       }
   
     }
@@ -576,19 +773,19 @@ void menuSettings(){
         printtoTop("Set Detonator   ");
         trigTimeAdjust(0);
       }
-      else if (currentMenuMode == SET_PENALTY_TME){
+      else if (currentMenuMode == SET_PENALTY_TIME){
         currentMenuMode = SET_DEFUSE_TIME;
         printtoTop("Set Defuse Time ");
         defuseTimeAdjust(0);
       }
       else if (currentMenuMode == GAME_START){
-        currentMenuMode = SET_PENALTY_TME;
+        currentMenuMode = SET_PENALTY_TIME;
         printtoTop("Set Pen Time    ");
         penTimeAdjust(0);
       }
       else if (currentMenuMode == SET_ARM_TIME){
         currentMenuMode = GAME_START;
-        printtoScreen("  TheRuddyBomb  ", "   Bomb Ready   ");
+        preStartGame();
       }
       
     }
@@ -605,7 +802,7 @@ void menuSettings(){
       else if (currentMenuMode == SET_DEFUSE_TIME){
         defuseTimeAdjust(-1);
       }
-      else if (currentMenuMode == SET_PENALTY_TME){
+      else if (currentMenuMode == SET_PENALTY_TIME){
         penTimeAdjust(-1);
       }
       
@@ -623,20 +820,22 @@ void menuSettings(){
       else if (currentMenuMode == SET_DEFUSE_TIME){
         defuseTimeAdjust(1);
       }
-      else if (currentMenuMode == SET_PENALTY_TME){
+      else if (currentMenuMode == SET_PENALTY_TIME){
         penTimeAdjust(1);
       }
     }
     else if (btn == BUTTON_SELECT_PRESSED){
 
       //we start the bomb.
+      //Game starts here.
       if (currentMenuMode == GAME_START){
         
-        playShortTone(startTone,1000);
-      
         //set the mode to bomb waiting to plant.
         currentMode = WAITING_FOR_PLANT;
         //exit back to main loop.
+
+        //start the game
+        startGame();
         
         return;
       }
@@ -676,7 +875,6 @@ void printtoScreen(const char * top_row,const char* bot_row){
   lcd.print(top_row);
   lcd.setCursor(0, 1);
   lcd.print(bot_row);
-  
 }
 
 void printtoTop(const char* top_row){
@@ -690,7 +888,6 @@ void printtoBot(const char* bot_row){
   lcd.setCursor(0, 1);
   lcd.print(bot_row);
 }
-
 
 void armTimeAdjust(char mod){
   
@@ -756,29 +953,29 @@ void trigTimeAdjust(char mod){
   }
 
   //get the number in milliseconds to seconds, and print.
-  Int2AsciiExt((unsigned int)(trig_time_set/60000));
+  Int2AsciiExt((unsigned int)(trig_time_set/1000));
 
   //place the data into the array.
-  temp_array_minute[3] = temp_array_3[1];
-  temp_array_minute[4] = temp_array_3[0];
+  temp_array_second[3] = temp_array_3[1];
+  temp_array_second[4] = temp_array_3[0];
 
   //now print the values to the screen.
   //change the chevron direction.
   if (trig_time_pos == 0){
-    temp_array_minute[0] = ' ';
-    temp_array_minute[15] = '>';
+    temp_array_second[0] = ' ';
+    temp_array_second[15] = '>';
   }
   else if (trig_time_pos == (TRIG_time_count - 1)){
     
-    temp_array_minute[0] = '<';
-    temp_array_minute[15] = ' ';
+    temp_array_second[0] = '<';
+    temp_array_second[15] = ' ';
   }
   else{
-    temp_array_minute[0] = '<';
-    temp_array_minute[15] = '>';
+    temp_array_second[0] = '<';
+    temp_array_second[15] = '>';
   }
 
-  printtoBot(temp_array_minute);
+  printtoBot(temp_array_second);
 }
 
 void defuseTimeAdjust(char mod){
@@ -949,7 +1146,6 @@ void drawProgress(unsigned long currTime, unsigned long maxTime) {
             break;
 
         default:
-            //Serial.println("ERROR - Unknown character to print");
             break;
     }
 }
@@ -958,16 +1154,15 @@ void drawProgress(unsigned long currTime, unsigned long maxTime) {
 void defendersDefuse(){
 
   //print notification
-  printtoScreen("Game Over Man   ", "CT Defuse Win   ");
-
+  printtoTop("[   DEFUSED!   ]");
+  printtoBot(global_timer_bar);
+  
   //descending tones.
   for (int i = 500; i >= 100; --i){
     tone(buzzerPin,i);
     delay(5);
   }
-  delay(3000);
-  noTone(buzzerPin);
-  
+
   //cleanup stuff
   endOfGameCleanup();
 }
@@ -976,25 +1171,29 @@ void defendersDefuse(){
 void attackersDetonate(){
   
   //print notification.
-  printtoScreen("Game Over Man   ","Terrorists Win  ");
+  printtoTop("[  DETONATED!  ]");
+  printtoBot(global_timer_bar);
 
-  //ascending tones.
-  for (int i = 100; i < 1000; ++i){
-    tone(buzzerPin,i);
-    delay(1);
-  }
-  delay(3000);
-  noTone(buzzerPin);
+  //play detonation tone.
+  tone(buzzerPin, detonatorTone);
   
+  //cleanup stuff
+  endOfGameCleanup();
+}
+
+//the global timer runs out.
+void defendersStall(){
+  
+  //print notification.
+  printtoTop("[  ROUND END!  ]");
+  printtoBot(global_timer_bar);
+
   //cleanup stuff
   endOfGameCleanup();
 }
 
 //cleanup the end of the game
 void endOfGameCleanup(){
-
-  //clear out the buzzer
-  noTone(buzzerPin);
   
   // go back to the bomb type.
   currentMode = SELECT_BOMB_TYPE;
@@ -1003,15 +1202,16 @@ void endOfGameCleanup(){
   clearTempArray();
 
   //reset the set times.
-  arm_time_set = armTimes[arm_time_pos];
-  defuse_time_set = defuseTimes[defuse_time_pos];
+  //arm_time_set = armTimes[arm_time_pos];
+  //defuse_time_set = defuseTimes[defuse_time_pos];
   
   //we will wait until the button has been released to restart.
-  while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
+  while (!(btn == BUTTON_RIGHT_PRESSED)) btn = getButton();
   
   //Let Menu stuff be visible when we go back to the bomb set state.
   currentMenuMode = GAME_START;
-  printtoScreen("  TheRuddyBomb  ", "   Bomb Ready   ");
+
+  noTone(buzzerPin);
 }
 
 //clear the temporary array.
@@ -1041,32 +1241,3 @@ void playShortTone(int freq, int len){
   delay(len); //do a delay
   noTone(buzzerPin); //turn off buzzer
 }
-
-//add tilt switch
-void addTilt(){
-
-  //poll the tilt switch
-  tiltArray[tiltArrayPos] = digitalRead(tiltPin);
-
-  //set the tilt array position
-  ++tiltArrayPos;
-
-  //clear the tilt array position
-  if (tiltArrayPos == tiltThresholdCount) tiltArrayPos = 0;
-}
-
-//check the tilt switch
-boolean checkTilt(){
-
-  boolean check = false;
-
-  //loop through the array and set as needed
-  for (int i = 0; i < tiltThresholdCount; ++i){
-    if (tiltArray[i] == 0){
-      check = true;
-    }
-  }
-  
-  return !check;
-}
-
