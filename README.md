@@ -4,17 +4,24 @@
 
 ## Getting started
 
-l) Install Arduino IDE.
-l) Get libraries from /arduino_src/lib and move them to Arduino library environment.
-l) Load the ino in /arduino_src/TheRuddyBombVX.
-l) Done.
+-  Install Arduino IDE.
+-  Get libraries from /arduino_src/lib and move them to Arduino library environment.
+-  Load the ino in /arduino_src/TheRuddyBombVX.
+-  Done.
 
 ## Current hardware
 - Arduino MEGA 2560
 - DFRobot shield V1.0 with lcd screen
 - Generic Buzzer
 
-- Will also need some kind of power supply - We use an 18650 cell with a board to 5V power.
+- The devie also needs some kind of power supply - We use an 18650 cell with a board to 5V power. However, virtually any 5V power source will suffice.
+
+## Changelog V1.0.2
+
+- Implemented an accelerated beeping process, adding to the tension at round-ending times.
+- Implemented improved gameplay device states.
+- Added some additional code optimization.
+- Cleaned up code in some particularly verbose areas.
 
 ## Changelog V1.0.1
 
