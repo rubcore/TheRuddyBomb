@@ -13,8 +13,16 @@
 - Arduino MEGA 2560
 - DFRobot shield V1.0 with lcd screen
 - Generic Buzzer
+- ADC accelerometer
 
-- The devie also needs some kind of power supply - We use an 18650 cell with a board to 5V power. However, virtually any 5V power source will suffice.
+- The devie also needs some kind of power supply - Virtually any 5V power source will suffice.
+
+## Changelog V1.0.3
+
+- added accelerometer support for ADC based accelerometer
+- Completely removed penalty system for bomb moving... Accelerometer now detects motion and automatically detonates on movement.
+- Game time can now be changed in 1 minute increments from 2 to 10 minutes global game time. Default 5 minutes.
+- Further improved code size.
 
 ## Changelog V1.0.2
 

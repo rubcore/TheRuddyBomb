@@ -20,7 +20,7 @@
 #include "LcdKeypad.h"
 
 //VERSION
-#define VERSION "   ver. 1.0.2   "
+#define VERSION "   ver. 1.0.3   "
 
 //comment out if not using external button.
 #define externalButton
@@ -50,13 +50,14 @@
 #define plantDefuseTone 659 //whenever defusal or planting is in progress
 #define startTone 524 //start tone.
 
-//misc declerations
-
 //the LCD screen has 16 squares.
 #define row_len 16.0
 
-//5 minutes
-#define Global_Game_Time 300000
+//accelerometer readings.
+//high values for low sensitivity
+//low values for high sensitivity
+#define accel_sensitivity 10
+#define accel_max_variance 35
 
 //Bomb arm time
 #define ARM_time_default 0
@@ -70,13 +71,6 @@
 //Bomb trigger time
 #define TRIG_time_default 2
 #define TRIG_time_count 5
-//#define TRIG_time_1m 60000
-//#define TRIG_time_2m 120000
-//#define TRIG_time_3m 180000
-//#define TRIG_time_5m 300000
-//#define TRIG_time_10m 600000
-
-//CHANGE: shorter detonation times
 #define TRIG_time_20s 20000
 #define TRIG_time_30s 30000
 #define TRIG_time_40s 40000
@@ -92,11 +86,18 @@
 #define DEFUSE_time_40s 40000
 #define DEFUSE_time_50s 50000
 
-//penalty time
-#define PENALTY_time_default 1
-#define PENALTY_time_count 3
-#define PENALTY_time_5s 5000
-#define PENALTY_time_10s 10000
+//global game time
+#define GAME_time_default 3
+#define GAME_time_count 9
+#define GAME_time_2m 120000
+#define GAME_time_3m 180000
+#define GAME_time_4m 240000
+#define GAME_time_5m 300000
+#define GAME_time_6m 360000
+#define GAME_time_7m 420000
+#define GAME_time_8m 480000
+#define GAME_time_9m 540000
+#define GAME_time_10m 600000
 
 //Custom characters for Progress bars
 uint8_t p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -108,29 +109,26 @@ uint8_t p5[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};
 //array of times
 unsigned long armTimes[ARM_time_count] = {ARM_time_10s,ARM_time_20s,ARM_time_30s,ARM_time_40s, ARM_time_50s};
 unsigned long trigTimes[TRIG_time_count] = {TRIG_time_20s,TRIG_time_30s,TRIG_time_40s,TRIG_time_50s,TRIG_time_60s};
-unsigned long defuseTimes [DEFUSE_time_count] = {DEFUSE_time_10s,DEFUSE_time_20s,DEFUSE_time_30s,DEFUSE_time_40s,DEFUSE_time_50s};
-unsigned long penaltyTimes [PENALTY_time_count] = {0,PENALTY_time_5s,PENALTY_time_10s};
+unsigned long defuseTimes[DEFUSE_time_count] = {DEFUSE_time_10s,DEFUSE_time_20s,DEFUSE_time_30s,DEFUSE_time_40s,DEFUSE_time_50s};
+unsigned long gameTimes[GAME_time_count] = {GAME_time_2m,GAME_time_3m,GAME_time_4m,GAME_time_5m,GAME_time_6m,GAME_time_7m,GAME_time_8m,GAME_time_9m,GAME_time_10m};
 
 //the current bomb setting
 unsigned long arm_time_set;
 unsigned long trig_time_set;
 unsigned long defuse_time_set;
-unsigned long penalty_time_set;
+unsigned long game_time_set;
 
 //the current time for the timers.
 unsigned long current_time;
 unsigned long planting_time;
 unsigned long defusing_time;
-//unsigned long penalty_time;
 
 //set position of the array.
 char arm_time_pos;
 char trig_time_pos;
 char defuse_time_pos;
-char penalty_time_pos;
+char game_time_pos;
 
-//5 minutes
-const unsigned long global_game_time = Global_Game_Time; //set for 5 minutes.
 unsigned long game_start_time = 0; //start time: set as global variable
 
 //temporary array for printing.
@@ -164,7 +162,7 @@ typedef enum MenuMode{
   SET_ARM_TIME,
   SET_TRIG_TIME,
   SET_DEFUSE_TIME,
-  SET_PENALTY_TIME
+  SET_GAME_TIME
 } MenuMode;
 
 //Set the application mode for startup
@@ -198,7 +196,7 @@ void Int2AsciiExt(unsigned int);
 void armTimeAdjust(char mod);
 void trigTimeAdjust(char mod);
 void defuseTimeAdjust(char mod);
-void penTimeAdjust(char mod);
+void gameTimeAdjust(char mod);
 
 //timer output function.
 void timerDisplay(unsigned long input); //fn outputs to timerArray4
@@ -218,6 +216,17 @@ void endOfGameCleanup(); //cleanup the screen and go back to the menu state.
 //play a tone
 void playShortTone(int freq, int len);
 
+//accelerometer checks
+void add_accel(); //add values into the accelerometer stack.
+boolean check_accel(); //check whether the accelerometer has been triggered.
+void init_accel(); //initialize the accelerometer variables.
+//variables for filtering.
+unsigned int accel_array_x[accel_sensitivity];
+unsigned int accel_array_y[accel_sensitivity];
+unsigned int accel_array_z[accel_sensitivity];
+//array positioning for filters.
+unsigned int accel_pos = 0;
+
 //setup
 void setup() {
 
@@ -231,8 +240,7 @@ void setup() {
   //external button
   pinMode(switchPin,INPUT_PULLUP);
 
-  //for debug
-  //Serial.begin(9600);
+  init_accel(); //clear out the accelerometer variables.
 
   // set up the LCD's number of columns and rows.
   lcd.begin(16, 2);
@@ -248,11 +256,13 @@ void setup() {
   arm_time_set = armTimes[ARM_time_default];
   trig_time_set = trigTimes[TRIG_time_default];
   defuse_time_set = defuseTimes[DEFUSE_time_default];
+  game_time_set = gameTimes[GAME_time_default];
 
   //hold the position of the pointers to the array position
   arm_time_pos = ARM_time_default;
   trig_time_pos = TRIG_time_default;
   defuse_time_pos = DEFUSE_time_default;
+  game_time_pos = GAME_time_default;
 
   //counter value variables
   current_time = 0;
@@ -264,8 +274,6 @@ void setup() {
   delay(1500);
   printtoScreen("  TheRuddyBomb  ", "   Bomb Ready   ");
   delay(1000);
-
-  //done setting up
 }
 
 //main loop
@@ -292,7 +300,7 @@ void loop() {
     while (true){
 
       //check the global timer. If at any point 5 mins is up, the game is over.
-      if (millis() - game_start_time >= global_game_time){
+      if (millis() - game_start_time >= game_time_set){
          defendersStall();
          break;
       }
@@ -314,7 +322,7 @@ void loop() {
       if (arming_in_progress == false){
         //calculate the game global timer.
         //calculate the time elapsed.
-        temp_time_global = global_game_time - (millis() - game_start_time);
+        temp_time_global = game_time_set - (millis() - game_start_time);
 
         //put the timer into the array
         timerDisplay(temp_time_global);
@@ -420,11 +428,24 @@ void loop() {
     //we will wait until the button has been released to start the next section.
     while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
 
+    delay(500);
+    
+    init_accel(); //wait until the button has been released to check for accel settings.
+
     //loop forever
     while (true){
 
+      //add a value into the accelerometer
+      add_accel();
+
+      //bomb has been moved
+      if (check_accel() == true){
+        attackersDetonate(); //just detonate the bomb.
+        break;
+      }
+      
       //check the global timer. If at any point 5 mins is up, the game is over.
-      if ((millis() - game_start_time) >= global_game_time){
+      if ((millis() - game_start_time) >= game_time_set){
          defendersStall(); //end the game.
          break;
       }
@@ -518,7 +539,7 @@ void loop() {
 
         //calculate the game global timer.
         //calculate the time elapsed.
-        temp_time_global = global_game_time - (millis() - game_start_time);
+        temp_time_global = game_time_set - (millis() - game_start_time);
 
         timerDisplay(temp_time_global); //print to time format.
   
@@ -549,7 +570,7 @@ void preStartGame(){
   printtoTop("[PRESS TO START]");
 
   //set the game duration
-  timerDisplay(global_game_time);
+  timerDisplay(game_time_set);
 
   //fill in the message
   global_timer_bar[2] = timerArray4[0];
@@ -620,11 +641,11 @@ void menuSettings(){
         defuseTimeAdjust(0);
       }
       else if (currentMenuMode == SET_DEFUSE_TIME){
-        currentMenuMode = SET_PENALTY_TIME;
-        printtoTop("Set Pen Time    ");
-        //penTimeAdjust(0);
+        currentMenuMode = SET_GAME_TIME;
+        printtoTop("Set Game Time   ");
+        gameTimeAdjust(0);
       }
-      else if (currentMenuMode == SET_PENALTY_TIME){
+      else if (currentMenuMode == SET_GAME_TIME){
         currentMenuMode = GAME_START;
         preStartGame();
       }
@@ -645,15 +666,15 @@ void menuSettings(){
         printtoTop("Set Detonator   ");
         trigTimeAdjust(0);
       }
-      else if (currentMenuMode == SET_PENALTY_TIME){
+      else if (currentMenuMode == SET_GAME_TIME){
         currentMenuMode = SET_DEFUSE_TIME;
         printtoTop("Set Defuse Time ");
         defuseTimeAdjust(0);
       }
       else if (currentMenuMode == GAME_START){
-        currentMenuMode = SET_PENALTY_TIME;
-        printtoTop("Set Pen Time    ");
-        //penTimeAdjust(0);
+        currentMenuMode = SET_GAME_TIME;
+        printtoTop("Set Game Time   ");
+        gameTimeAdjust(0);
       }
       else if (currentMenuMode == SET_ARM_TIME){
         currentMenuMode = GAME_START;
@@ -674,8 +695,8 @@ void menuSettings(){
       else if (currentMenuMode == SET_DEFUSE_TIME){
         defuseTimeAdjust(-1);
       }
-      else if (currentMenuMode == SET_PENALTY_TIME){
-        //penTimeAdjust(-1);
+      else if (currentMenuMode == SET_GAME_TIME){
+        gameTimeAdjust(-1);
       }
       
     }
@@ -692,8 +713,8 @@ void menuSettings(){
       else if (currentMenuMode == SET_DEFUSE_TIME){
         defuseTimeAdjust(1);
       }
-      else if (currentMenuMode == SET_PENALTY_TIME){
-        //penTimeAdjust(1);
+      else if (currentMenuMode == SET_GAME_TIME){
+        gameTimeAdjust(1);
       }
     }
     else if (btn == BUTTON_SELECT_PRESSED){
@@ -790,6 +811,7 @@ void armTimeAdjust(char mod){
   printtoBot(temp_array_second);
 }
 
+//adjust detonator time
 void trigTimeAdjust(char mod){
     //already at the bounds of the array
   if ((trig_time_pos == 0 && mod == -1 )||(trig_time_pos == (TRIG_time_count - 1) && mod == 1)){
@@ -831,6 +853,7 @@ void trigTimeAdjust(char mod){
   printtoBot(temp_array_second);
 }
 
+//adjust the defuse time
 void defuseTimeAdjust(char mod){
   
   //already at the bounds of the array
@@ -873,51 +896,51 @@ void defuseTimeAdjust(char mod){
   printtoBot(temp_array_second);
 }
 
-/*
-void penTimeAdjust(char mod){
+//adjust the global game time.
+void gameTimeAdjust(char mod){
   
   //already at the bounds of the array
-  if ((penalty_time_pos == 0 && mod == -1 )||(penalty_time_pos == (PENALTY_time_count - 1) && mod == 1)){
+  if ((game_time_pos == 0 && mod == -1 )||(game_time_pos == (GAME_time_count - 1) && mod == 1)){
     //do nothing to prevent increment past bounds.
     return;
   }
 
   //change the setting
   if (mod == 1){
-    ++penalty_time_pos;
-    penalty_time_set = penaltyTimes[penalty_time_pos];
+    ++game_time_pos;
+    game_time_set = gameTimes[game_time_pos];
   }
   else if (mod == -1){
-    --penalty_time_pos;
-    penalty_time_set = penaltyTimes[penalty_time_pos];
+    --game_time_pos;
+    game_time_set = gameTimes[game_time_pos];
   }
 
   //get the number in milliseconds to seconds, and print.
-  Int2AsciiExt((unsigned int)(penalty_time_set/1000));
+  Int2AsciiExt((unsigned int)(game_time_set/60000));
 
   //place the data into the array.
-  temp_array_second[3] = temp_array_3[1];
-  temp_array_second[4] = temp_array_3[0];
+  temp_array_minute[3] = temp_array_3[1];
+  temp_array_minute[4] = temp_array_3[0];
 
   //now print the values to the screen.
   //change the chevron direction.
-  if (penalty_time_pos == 0){
-    temp_array_second[0] = ' ';
-    temp_array_second[15] = '>';
+  if (game_time_pos == 0){
+    temp_array_minute[0] = ' ';
+    temp_array_minute[15] = '>';
   }
-  else if (penalty_time_pos == (PENALTY_time_count - 1)){
-    temp_array_second[0] = '<';
-    temp_array_second[15] = ' ';
+  else if (game_time_pos == (GAME_time_count - 1)){
+    temp_array_minute[0] = '<';
+    temp_array_minute[15] = ' ';
   }
   else{
-    temp_array_second[0] = '<';
-    temp_array_second[15] = '>';
+    temp_array_minute[0] = '<';
+    temp_array_minute[15] = '>';
   }
 
   //print the setting output.
-  printtoBot(temp_array_second);
+  printtoBot(temp_array_minute);
 }
-*/
+
 
 //Int number to ascii string
 //assumes char* return is 3 bytes.
@@ -1076,10 +1099,50 @@ void clearTempArray(){
    temp_array_16[i] = ' ';
   }
 }
-
-//play a short tone of freq
 void playShortTone(int freq, int len){
   tone(buzzerPin,freq); //turn on buzzer
   delay(len); //do a delay
   noTone(buzzerPin); //turn off buzzer
+}
+
+void init_accel(){
+  //add values into the accelerometer array
+  for (char i = 0; i < accel_sensitivity; ++i) add_accel();
+}
+void add_accel(){
+  accel_array_x[accel_pos] = analogRead(X_axis);
+  accel_array_y[accel_pos] = analogRead(Y_axis);
+  accel_array_z[accel_pos] = analogRead(Z_axis);
+
+  accel_pos++;
+
+  if (accel_pos == accel_sensitivity) accel_pos = 0;
+}
+boolean check_accel(){
+
+  boolean result = false;
+  
+  unsigned int high_x = 0;
+  unsigned int high_y = 0;
+  unsigned int high_z = 0;
+  unsigned int low_x = 1023;
+  unsigned int low_y = 1023;
+  unsigned int low_z = 1023;
+
+  for (char i = 0; i < accel_sensitivity; ++i){
+    if (accel_array_x[i] > high_x) high_x = accel_array_x[i];
+    if (accel_array_x[i] < low_x) low_x = accel_array_x[i];
+
+    if (accel_array_z[i] > high_z) high_z = accel_array_z[i];
+    if (accel_array_z[i] < low_z) low_z = accel_array_z[i];
+
+    if (accel_array_y[i] > high_y) high_y = accel_array_y[i];
+    if (accel_array_y[i] < low_y) low_y = accel_array_y[i];
+  }
+
+  if (high_y - low_y >= accel_max_variance) result = true;
+  if (high_x - low_x >= accel_max_variance) result = true;
+  if (high_z - low_z >= accel_max_variance) result = true;
+
+  return result;
 }
