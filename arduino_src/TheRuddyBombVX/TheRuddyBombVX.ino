@@ -1,44 +1,34 @@
 /*
-  TheRuddyBombVX
-  FOR ATMEGA2560 on ARDUINO MEGA
+  TheRuddyBombVX - ATMEGA2560 on ARDUINO MEGA
  */
- 
 //Function parameters
-
 //TIME in MILLISECONDS, use u_long.
 //Default settings set to:
 //10s arm time
 //40 second detonation time
 //10s defuse
 //5 minute game time
-//0s penalty.
 
-//Additional settings must be placed directly into array with the appropriate +1 to the count.
-
-// include the library stuff
+//Library declerations
 #include <LiquidCrystal.h>
 #include "LcdKeypad.h"
 
 //VERSION
-#define VERSION "   ver. 1.0.3   "
+#define VERSION "   ver. 1.0.4   "
 
+//defines the use of the external button for bomb arming/defusing.
 //comment out if not using external button.
 #define externalButton
 
 //Hardware
-//Buzzer
-#define buzzerPin 53
-//Tilt switch
-#define tiltPin 51
-//PIR sensor
-#define PIRPin 49
-//for external button
-#define switchPin 31
+#define buzzerPin 53 //Buzzer
+#define PIRPin 49 //PIR sensor
+#define switchPin 51 //for external button
 
 //ADC Accelerometer
-#define Z_axis A8
-#define Y_axis A9
-#define X_axis A10
+#define Z_axis A1
+#define Y_axis A2
+#define X_axis A3
 
 //delay variables for the filter for the tilt switch and PIR sensor.
 #define tiltDelay 30
@@ -53,11 +43,11 @@
 //the LCD screen has 16 squares.
 #define row_len 16.0
 
-//accelerometer readings.
+#define accelerometer_enable
 //high values for low sensitivity
 //low values for high sensitivity
 #define accel_sensitivity 10
-#define accel_max_variance 35
+#define accel_max_variance 50
 
 //Bomb arm time
 #define ARM_time_default 0
@@ -162,7 +152,8 @@ typedef enum MenuMode{
   SET_ARM_TIME,
   SET_TRIG_TIME,
   SET_DEFUSE_TIME,
-  SET_GAME_TIME
+  SET_GAME_TIME,
+  SET_RADIO_CHECK
 } MenuMode;
 
 //Set the application mode for startup
@@ -209,6 +200,7 @@ void clearTempArray();
 
 //end conditions.
 void attackersDetonate(); //T team win: Successful Detonation
+void foulDetonate(); //T team win: bomb was moved by CT.
 void defendersDefuse(); //CT team win: Successful Defuse
 void defendersStall(); //CT team win: Timeout
 void endOfGameCleanup(); //cleanup the screen and go back to the menu state.
@@ -234,9 +226,6 @@ void setup() {
   pinMode(buzzerPin, OUTPUT);
   //PIR pin
   pinMode(PIRPin, INPUT);
-  //tilt switch pin
-  pinMode(tiltPin,INPUT);
-
   //external button
   pinMode(switchPin,INPUT_PULLUP);
 
@@ -270,7 +259,7 @@ void setup() {
   defusing_time = 0;
   
   // Print a message to the LCD.
-  printtoScreen("  TheRuddyBomb  ",VERSION);
+  printtoScreen("  TheRuddyBomb  ", VERSION);
   delay(1500);
   printtoScreen("  TheRuddyBomb  ", "   Bomb Ready   ");
   delay(1000);
@@ -317,9 +306,7 @@ void loop() {
         else{
           noTone(buzzerPin);
         }
-      }
-      
-      if (arming_in_progress == false){
+
         //calculate the game global timer.
         //calculate the time elapsed.
         temp_time_global = game_time_set - (millis() - game_start_time);
@@ -337,9 +324,14 @@ void loop() {
         printtoTop("[  PLANT ME!   ]");
         printtoBot(global_timer_bar);
       }
-        
-      //button pressed.
-      if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED){
+
+      //check button press
+      #ifdef externalButton
+      if (digitalRead(switchPin) == 0 && !arming_in_progress){
+      #else
+      if ((btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED )&& !arming_in_progress){
+      #endif
+      
         //set the flag
         arming_in_progress = true;
 
@@ -350,11 +342,14 @@ void loop() {
         //start the timer.
         planting_time = millis();
       }
-      //button released.
-      else if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59){
-
+        #ifdef externalButton
+        else if (digitalRead(switchPin) == 1){
+        #else
+        else if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59){
+        #endif
+      
         //clear the tone
-        noTone(buzzerPin);
+        //noTone(buzzerPin);
     
         //deset the flag
         arming_in_progress = false;
@@ -363,7 +358,8 @@ void loop() {
         clearTempArray();
         
       }
-      else if (arming_in_progress){
+      
+      if (arming_in_progress){
         //print the progress to the screen.
 
         //calculate the time remaining.
@@ -390,17 +386,11 @@ void loop() {
         printtoBot(temp_array_16);
         
         if (temp_time >= arm_time_set){
-
+          
           temp_time = 0; //reset the temp time.
-          
-          //reset the array with spaces.
-          clearTempArray();
-          
-          //deset the flag
-          arming_in_progress = false;
-
-          //change the state.
-          currentMode = TIMER_RUNNING;
+          clearTempArray(); //reset the array with spaces.
+          arming_in_progress = false; //deset the flag
+          currentMode = TIMER_RUNNING; //change the state.
 
           break;
           
@@ -425,24 +415,38 @@ void loop() {
     //Print new state to the screen
     printtoScreen("[   PLANTED!   ]","                ");
 
-    //we will wait until the button has been released to start the next section.
-    while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
+    //*****
+    //TODO: RADIO PROMPT
+    //*****
 
-    delay(500);
+    //wait for button released.
+    //hang until buton released.
     
-    init_accel(); //wait until the button has been released to check for accel settings.
+    #ifdef externalButton
+    while (digitalRead(switchPin) == 0);
+    #else
+    while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
+    #endif
+    
+    delay(500);
 
+    #ifdef accelerometer_enable
+    init_accel(); //wait until the button has been released to check for accel settings.
+    #endif
+  
     //loop forever
     while (true){
 
+      #ifdef accelerometer_enable
       //add a value into the accelerometer
       add_accel();
 
       //bomb has been moved
       if (check_accel() == true){
-        attackersDetonate(); //just detonate the bomb.
+        foulDetonate();
         break;
       }
+      #endif
       
       //check the global timer. If at any point 5 mins is up, the game is over.
       if ((millis() - game_start_time) >= game_time_set){
@@ -453,8 +457,11 @@ void loop() {
       //get the button
       btn = getButton();
 
-      //setup the time remaining on the detonator.
-      if (btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED){
+      #ifdef externalButton
+      if (digitalRead(switchPin) == 0 && !disarming_in_progress){
+      #else
+      if ((btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED)&& !disarming_in_progress){
+      #endif
         
         disarming_in_progress = true; //set the flag
 
@@ -462,19 +469,21 @@ void loop() {
         //start the timer.
         defuse_time = millis();
       }
-      //button released.
-      else if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59){
 
-        //clear the tone
-        noTone(buzzerPin);
-
+      #ifdef externalButton
+      else if (digitalRead(switchPin) == 1){
+      #else
+      else if ((btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59 ){
+      #endif
+      
         //deset the flag
         disarming_in_progress = false;
 
         //reset the array with spaces.
         clearTempArray();
       }
-      else if (disarming_in_progress){
+      
+      if (disarming_in_progress){
 
         //calculate the time remaining.
         temp_time = millis() - defuse_time;
@@ -508,6 +517,10 @@ void loop() {
         
         //calculate the time remaining.
         time_remaining = trig_time_set - (millis() - countdown_time);  
+
+        //*****
+        //TODO: RADIO PROMPT
+        //*****
         
         //detonator tone acceleration
         //greater than 20 seconds
@@ -595,6 +608,10 @@ void startGame(){
 
   printtoBot(global_timer_bar);
 
+    //*****
+    //TODO: RADIO PROMPT
+    //*****
+
   //Delay 3 seconds with sound feedback
   printtoTop("[STARTING IN: 3]");
   playShortTone(menuTone,1000);
@@ -646,6 +663,19 @@ void menuSettings(){
         gameTimeAdjust(0);
       }
       else if (currentMenuMode == SET_GAME_TIME){
+        currentMenuMode = SET_RADIO_CHECK;
+        
+        printtoTop("Radio Check     ");
+        
+        //play detonation tone.
+        tone(buzzerPin, detonatorTone);
+        delay(500);
+        noTone(buzzerPin);
+        delay(500);
+        
+        //TODO radio check stuff
+      }
+      else if (currentMenuMode == SET_RADIO_CHECK){
         currentMenuMode = GAME_START;
         preStartGame();
       }
@@ -656,7 +686,24 @@ void menuSettings(){
       playShortTone(menuTone,50);
       
       //loop the settings
-      if (currentMenuMode == SET_TRIG_TIME){
+      if (currentMenuMode == GAME_START){
+        currentMenuMode = SET_RADIO_CHECK;
+        
+        printtoTop("Radio Check     ");
+
+        //play detonation tone.
+        tone(buzzerPin, detonatorTone);
+        delay(500);
+        noTone(buzzerPin);
+        delay(500);
+        
+        //TODO Radio check stuff
+      }
+      else if (currentMenuMode == SET_ARM_TIME){
+        currentMenuMode = GAME_START;
+        preStartGame();
+      }
+      else if (currentMenuMode == SET_TRIG_TIME){
         currentMenuMode = SET_ARM_TIME;
         printtoTop("Set Arm Time    ");
         armTimeAdjust(0);
@@ -671,14 +718,10 @@ void menuSettings(){
         printtoTop("Set Defuse Time ");
         defuseTimeAdjust(0);
       }
-      else if (currentMenuMode == GAME_START){
+      else if (currentMenuMode == SET_RADIO_CHECK){
         currentMenuMode = SET_GAME_TIME;
         printtoTop("Set Game Time   ");
         gameTimeAdjust(0);
-      }
-      else if (currentMenuMode == SET_ARM_TIME){
-        currentMenuMode = GAME_START;
-        preStartGame();
       }
       
     }
@@ -717,7 +760,14 @@ void menuSettings(){
         gameTimeAdjust(1);
       }
     }
+    
+    //check button press to start the game.
+    #ifdef externalButton
+    else if (digitalRead(switchPin) == 0){
+    #else
     else if (btn == BUTTON_SELECT_PRESSED){
+    #endif
+    
       //Game starts here.
       if (currentMenuMode == GAME_START){
         
@@ -730,7 +780,7 @@ void menuSettings(){
         return;
       }
       
-    }
+    } 
     
   }
   
@@ -1038,6 +1088,10 @@ void defendersDefuse(){
   //print notification
   printtoTop("[   DEFUSED!   ]");
   printtoBot(global_timer_bar);
+
+    //*****
+    //TODO: RADIO PROMPT
+    //*****
   
   //descending tones.
   for (int i = 500; i >= 100; --i){
@@ -1056,6 +1110,10 @@ void attackersDetonate(){
   printtoTop("[  DETONATED!  ]");
   printtoBot(global_timer_bar);
 
+    //*****
+    //TODO: RADIO PROMPT
+    //*****
+
   //play detonation tone.
   tone(buzzerPin, detonatorTone);
   
@@ -1065,9 +1123,30 @@ void attackersDetonate(){
 
 //the global timer runs out.
 void defendersStall(){
+
+    //*****
+    //TODO: RADIO PROMPT
+    //*****
   
   //print notification.
   printtoTop("[  ROUND END!  ]");
+  printtoBot(global_timer_bar);
+
+  //cleanup stuff
+  endOfGameCleanup();
+}
+
+void foulDetonate(){
+
+  //*****
+  //TODO: RADIO PROMPT
+  //*****
+    
+  //play detonation tone.
+  tone(buzzerPin, detonatorTone);
+  
+  //print notification.
+  printtoTop("[     FOUL!    ]");
   printtoBot(global_timer_bar);
 
   //cleanup stuff
@@ -1083,8 +1162,14 @@ void endOfGameCleanup(){
   //cleanup the progress bar
   clearTempArray();
 
-  //we will wait until the button has been released to restart.
+  //check button released to prevent button fall-through.
+  #ifdef externalButton
+  while (digitalRead(switchPin) == 0);
+  while (digitalRead(switchPin) == 1);
+  delay(300);
+  #else
   while (!(btn == BUTTON_RIGHT_PRESSED)) btn = getButton();
+  #endif
   
   //Let Menu stuff be visible when we go back to the bomb set state.
   currentMenuMode = GAME_START;

@@ -14,8 +14,16 @@
 - DFRobot shield V1.0 with lcd screen
 - Generic Buzzer
 - ADC accelerometer
+- Generic push-button
 
-- The devie also needs some kind of power supply - Virtually any 5V power source will suffice.
+- The device also needs some kind of power supply - Virtually any 5V power source will suffice.
+
+## Changelog V1.0.4
+
+- Added external button support, toggle on/off by commenting out compiler directive.
+- Added foul state to indicate that a device has been moved incorrectly/ Previous implementation featured the attackers detonate state which was ambiguous.
+- Added function in menu for a radio check by playing a 1Hz 50% duty cycle tone to check radio.
+- Added positions for radio sound output. (Not yet implemented.)
 
 ## Changelog V1.0.3
 

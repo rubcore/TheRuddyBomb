@@ -17,11 +17,17 @@
 
 - The devie also needs some kind of power supply - Virtually any 5V power source will suffice.
 
+## Changelog V1.0.4
+
+- Added external button support, toggle on/off by commenting out compiler directive.
+- Added positions for radio sound output. (Not yet implemented.)
+
 ## Changelog V1.0.3
 
 - added accelerometer support for ADC based accelerometer
-- Completely removed penalty system for bomb moving.
-- Game time can now be changed in 1 minute increments from 2 to 10 minutes global game time. Default 5 minutes
+- Completely removed penalty system for bomb moving... Accelerometer now detects motion and automatically detonates on movement.
+- Game time can now be changed in 1 minute increments from 2 to 10 minutes global game time. Default 5 minutes.
+- Further improved code size.
 
 ## Changelog V1.0.2
 
