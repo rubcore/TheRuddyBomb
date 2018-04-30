@@ -1,5 +1,7 @@
 # The Ruddy Bomb!
 
+![The ruddy bastards](http://rub.printmighty.co.nz/assets/Uploads/_resampled/xSetWidth846-webstorebanner4.png.pagespeed.ic.LG9ZfQe-v2.png)
+
 The goal of this project is to create a simple and reliable Airsoft game device that enhances play by introducing electronically automated objectives and measured team performances.  
 
 Assembled with an Arduino board and other off the shelf components, it is designed to be built by anyone with limited electronics knowledge. 
@@ -7,9 +9,6 @@ Assembled with an Arduino board and other off the shelf components, it is design
 The interface is as simple and intuitive as possible, lowering the learning curve and creating a device that is easy to use in game.
 
 In an attempt to encourage wide adoption we have put focus on keeping the production cost low, making the code open source and having the most simple assembly process as possible.
-
-
-![The ruddy bastards](http://rub.printmighty.co.nz/assets/Uploads/_resampled/xSetWidth846-webstorebanner4.png.pagespeed.ic.LG9ZfQe-v2.png)
 
 ## Getting started
 
