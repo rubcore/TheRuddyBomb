@@ -14,15 +14,15 @@ In an attempt to encourage wide adoption we have put focus on keeping the produc
 
 ## What does it do?
 
-it simulates a well known game type called Search and Destroy. The device is planted on the field by one team, and is attempted to be deactivated by another.
+It simulates a well known game type called Search and Destroy. The device is planted on the field by one team, and then is attempted to be deactivated by another.
 
-As development progresses it's hoped that other familiar game types will be added.
+As development progresses other familiar game types will be added.
 
 ## How does it work?
 
 The interface uses a single button, which changes the state of the device in game and a two line LCD screen to visually report information.
 
-It works in conjunction with a two way radio and transmits the device states (game start, armed, disarmed etc) via radio to all players on the field and from the device itself.
+The device functions in conjunction with a two-way radio and transmits device states (game start, armed, disarmed etc) via radio to all players on the field and from the device itself.
 
 ## Getting started
 
