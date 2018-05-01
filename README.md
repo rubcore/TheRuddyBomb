@@ -16,7 +16,7 @@ In an attempt to encourage wide adoption we have put focus on keeping the produc
 
 it simulates a well known game type called Search and Destroy. The device is planted on the field by one team, and is attempted to be deactivated by another.
 
-As development progresses, it's hoped that other familiar game types will be added.
+As development progresses it's hoped that other familiar game types will be added.
 
 ## How does it work?
 
