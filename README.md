@@ -2,13 +2,27 @@
 
 ![The ruddy bastards](http://rub.printmighty.co.nz/assets/Uploads/_resampled/xSetWidth846-webstorebanner4.png.pagespeed.ic.LG9ZfQe-v2.png)
 
-The goal of this project is to create a simple and reliable Airsoft game device that enhances play by introducing electronically automated objectives and measured team performances.  
+## The goal of this project.
+
+To create a simple and reliable Airsoft game device that enhances play by introducing electronically automated objectives and measured team performances.  
 
 Assembled with an Arduino board and other off the shelf components, it is designed to be built by anyone with limited electronics knowledge. 
 
 The interface is as simple and intuitive as possible, lowering the learning curve and creating a device that is easy to use in game.
 
 In an attempt to encourage wide adoption we have put focus on keeping the production cost low, making the code open source and having the most simple assembly process as possible.
+
+## What does it do?
+
+it simulates a well known game type called Search and Destroy. The device is planted on the field by one team, and is attempted to be deactivated by another.
+
+As development progresses, it's hoped that other familiar game types will be added.
+
+## How does it work?
+
+The interface uses a single button, which changes the state of the device in game and a two line LCD screen to visually report information.
+
+It works conjunction with a two way radio and transmits the device states (game start, armed, disarmed etc) via radio to all players on the field and from the device itself.
 
 ## Getting started
 
