@@ -8,7 +8,7 @@ To create a simple and reliable Airsoft game device that enhances play by introd
 
 Assembled with an Arduino board and other off the shelf components, it is designed to be built by anyone with limited electronics knowledge. 
 
-The interface is as simple and intuitive as possible, lowering the learning curve and creating a device that is easy to use in game.
+The interface is as simple and intuitive as possible, lowering the learning curve and creating a device that is easy to use on the field.
 
 In an attempt to encourage wide adoption we have put focus on keeping the production cost low, making the code open source and having the assembly process as simple as possible.
 
