@@ -22,7 +22,7 @@ As development progresses, it's hoped that other familiar game types will be add
 
 The interface uses a single button, which changes the state of the device in game and a two line LCD screen to visually report information.
 
-It works conjunction with a two way radio and transmits the device states (game start, armed, disarmed etc) via radio to all players on the field and from the device itself.
+It works in conjunction with a two way radio and transmits the device states (game start, armed, disarmed etc) via radio to all players on the field and from the device itself.
 
 ## Getting started
 
