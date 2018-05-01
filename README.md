@@ -24,6 +24,8 @@ The interface uses a single button, which changes the state of the device in gam
 
 The device functions in conjunction with a two-way radio and transmits device states (game start, armed, disarmed etc) via radio to all players on the field and from the device itself.
 
+It also includes an accelerometer as tamper detection when the device is in an armed state.
+
 ## Getting started
 
 -  Install Arduino IDE.
