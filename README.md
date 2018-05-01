@@ -10,7 +10,7 @@ Assembled with an Arduino board and other off the shelf components, it is design
 
 The interface is as simple and intuitive as possible, lowering the learning curve and creating a device that is easy to use in game.
 
-In an attempt to encourage wide adoption we have put focus on keeping the production cost low, making the code open source and having the most simple assembly process as possible.
+In an attempt to encourage wide adoption we have put focus on keeping the production cost low, making the code open source and having the assembly process as simple as possible.
 
 ## What does it do?
 
