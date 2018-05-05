@@ -14,7 +14,7 @@
 #include "LcdKeypad.h"
 
 //VERSION
-#define VERSION "   ver. 1.0.4   "
+#define VERSION "   ver. 1.1.0   "
 
 //defines the use of the external button for bomb arming/defusing.
 //comment out if not using external button.
@@ -24,15 +24,12 @@
 #define buzzerPin 53 //Buzzer
 #define PIRPin 49 //PIR sensor
 #define switchPin 51 //for external button
+#define radioOutputPin 30 //for radio output.
 
 //ADC Accelerometer
 #define Z_axis A1
 #define Y_axis A2
 #define X_axis A3
-
-//delay variables for the filter for the tilt switch and PIR sensor.
-#define tiltDelay 30
-#define PIRDelay 30
 
 //buzzer tones
 #define menuTone 262 //menu selection and unarmed bomb
@@ -228,6 +225,8 @@ void setup() {
   pinMode(PIRPin, INPUT);
   //external button
   pinMode(switchPin,INPUT_PULLUP);
+  //setup the radio output.
+  pinMode(radioOutputPin, OUTPUT);
 
   init_accel(); //clear out the accelerometer variables.
 
@@ -415,10 +414,6 @@ void loop() {
     //Print new state to the screen
     printtoScreen("[   PLANTED!   ]","                ");
 
-    //*****
-    //TODO: RADIO PROMPT
-    //*****
-
     //wait for button released.
     //hang until buton released.
     
@@ -427,6 +422,10 @@ void loop() {
     #else
     while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
     #endif
+
+    //clear the tones.
+    noTone(radioOutputPin);
+    noTone(buzzerPin);
     
     delay(500);
 
@@ -517,29 +516,25 @@ void loop() {
         
         //calculate the time remaining.
         time_remaining = trig_time_set - (millis() - countdown_time);  
-
-        //*****
-        //TODO: RADIO PROMPT
-        //*****
         
         //detonator tone acceleration
         //greater than 20 seconds
         if (time_remaining >= 20000){
-           if ((time_remaining % 1000) >= 500) tone(buzzerPin,detonatorTone);
-           else noTone(buzzerPin);
+           if ((time_remaining % 1000) >= 500) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
         }
         //start ramping up the beeping
         else if (time_remaining >=  15000){
-           if ((time_remaining % 800) >= 400) tone(buzzerPin,detonatorTone);
-           else noTone(buzzerPin);
+           if ((time_remaining % 800) >= 400) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
         }
         else if (time_remaining >=  15000){
-           if ((time_remaining % 600) >= 300) tone(buzzerPin,detonatorTone);
-           else noTone(buzzerPin);
+           if ((time_remaining % 600) >= 300) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
         }
         else{
-           if ((time_remaining % 500) >= 250) tone(buzzerPin,detonatorTone);
-           else noTone(buzzerPin);
+           if ((time_remaining % 500) >= 250) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
         }
 
         timerDisplay(time_remaining); //print to time format.
@@ -614,16 +609,25 @@ void startGame(){
 
   //Delay 3 seconds with sound feedback
   printtoTop("[STARTING IN: 3]");
-  playShortTone(menuTone,1000);
+  playShortTone(menuTone,500);
+  tone(radioOutputPin,menuTone);
   delay(750);
+  noTone(radioOutputPin);
   printtoTop("[STARTING IN: 2]");
-  playShortTone(menuTone,1000);
+  playShortTone(menuTone,500);
+  tone(radioOutputPin,menuTone);
   delay(750);
+  noTone(radioOutputPin);
   printtoTop("[STARTING IN: 1]");
-  playShortTone(menuTone,1000);
+  playShortTone(menuTone,500);
+  tone(radioOutputPin,menuTone);
   delay(750);
+  noTone(radioOutputPin);
   printtoTop("[  GAME START  ]");
-  playShortTone(startTone,1000);
+  playShortTone(startTone,500);
+  tone(radioOutputPin,startTone);
+  delay(750);
+  noTone(radioOutputPin);
 }
 
 //set bomb parameters.
@@ -634,6 +638,12 @@ void menuSettings(){
   
   //while true. Exit when the bomb is ready to be played.
   while (true){
+
+    //output radio check.
+    if (currentMenuMode == SET_RADIO_CHECK){
+      if ((millis() % 500) >= 250) tone(radioOutputPin,detonatorTone);
+      else noTone(radioOutputPin);
+    }
 
     btn = getButton();
 
@@ -666,17 +676,12 @@ void menuSettings(){
         currentMenuMode = SET_RADIO_CHECK;
         
         printtoTop("Radio Check     ");
+        printtoBot("                ");
         
-        //play detonation tone.
-        tone(buzzerPin, detonatorTone);
-        delay(500);
-        noTone(buzzerPin);
-        delay(500);
-        
-        //TODO radio check stuff
       }
       else if (currentMenuMode == SET_RADIO_CHECK){
         currentMenuMode = GAME_START;
+        noTone(radioOutputPin);
         preStartGame();
       }
   
@@ -690,14 +695,8 @@ void menuSettings(){
         currentMenuMode = SET_RADIO_CHECK;
         
         printtoTop("Radio Check     ");
-
-        //play detonation tone.
-        tone(buzzerPin, detonatorTone);
-        delay(500);
-        noTone(buzzerPin);
-        delay(500);
+        printtoBot("                ");
         
-        //TODO Radio check stuff
       }
       else if (currentMenuMode == SET_ARM_TIME){
         currentMenuMode = GAME_START;
@@ -721,6 +720,7 @@ void menuSettings(){
       else if (currentMenuMode == SET_RADIO_CHECK){
         currentMenuMode = SET_GAME_TIME;
         printtoTop("Set Game Time   ");
+        noTone(radioOutputPin);
         gameTimeAdjust(0);
       }
       
@@ -1089,13 +1089,9 @@ void defendersDefuse(){
   printtoTop("[   DEFUSED!   ]");
   printtoBot(global_timer_bar);
 
-    //*****
-    //TODO: RADIO PROMPT
-    //*****
-  
   //descending tones.
   for (int i = 500; i >= 100; --i){
-    tone(buzzerPin,i);
+    tone(radioOutputPin,i);
     delay(5);
   }
 
@@ -1110,12 +1106,8 @@ void attackersDetonate(){
   printtoTop("[  DETONATED!  ]");
   printtoBot(global_timer_bar);
 
-    //*****
-    //TODO: RADIO PROMPT
-    //*****
-
   //play detonation tone.
-  tone(buzzerPin, detonatorTone);
+  tone(radioOutputPin, detonatorTone);
   
   //cleanup stuff
   endOfGameCleanup();
@@ -1124,9 +1116,8 @@ void attackersDetonate(){
 //the global timer runs out.
 void defendersStall(){
 
-    //*****
-    //TODO: RADIO PROMPT
-    //*****
+  //play game end tone.
+  tone(radioOutputPin, menuTone);
   
   //print notification.
   printtoTop("[  ROUND END!  ]");
@@ -1137,13 +1128,9 @@ void defendersStall(){
 }
 
 void foulDetonate(){
-
-  //*****
-  //TODO: RADIO PROMPT
-  //*****
     
   //play detonation tone.
-  tone(buzzerPin, detonatorTone);
+  tone(radioOutputPin, detonatorTone);
   
   //print notification.
   printtoTop("[     FOUL!    ]");
@@ -1174,7 +1161,9 @@ void endOfGameCleanup(){
   //Let Menu stuff be visible when we go back to the bomb set state.
   currentMenuMode = GAME_START;
 
+  noTone(radioOutputPin);
   noTone(buzzerPin);
+  
 }
 
 //clear the temporary array.

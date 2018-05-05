@@ -26,6 +26,12 @@ The device functions in conjunction with a two-way radio and transmits device st
 
 It also includes an accelerometer as tamper detection when the device is in an armed state.
 
+## Main contributors
+
+- ehills
+- Rukh/scanhead
+- Aster/Hazesty
+
 ## Getting started
 
 -  Install Arduino IDE.
@@ -42,38 +48,19 @@ It also includes an accelerometer as tamper detection when the device is in an a
 
 - The device also needs some kind of power supply - Virtually any 5V power source will suffice.
 
+COMING SOON: HARDWARE CONFIGURATION
+
+## UPDATE V1.1.0
+
+- Full device functionality complete.
+- Radio functionality complete.
+- Added tone output to radio systems.
+- Finished radio check function. Use reciever radio gain to amplify the signal.
+- Known foible: Some radio output on the bomb is delayed by up to 0.5s due to the fact that tones cannot be played simultaneously on two different pins.
+
 ## Changelog V1.0.4
 
 - Added external button support, toggle on/off by commenting out compiler directive.
 - Added foul state to indicate that a device has been moved incorrectly/ Previous implementation featured the attackers detonate state which was ambiguous.
 - Added function in menu for a radio check by playing a 1Hz 50% duty cycle tone to check radio.
 - Added positions for radio sound output. (Not yet implemented.)
-
-## Changelog V1.0.3
-
-- added accelerometer support for ADC based accelerometer
-- Completely removed penalty system for bomb moving... Accelerometer now detects motion and automatically detonates on movement.
-- Game time can now be changed in 1 minute increments from 2 to 10 minutes global game time. Default 5 minutes.
-- Further improved code size.
-
-## Changelog V1.0.2
-
-- Implemented an accelerated beeping process, adding to the tension at round-ending times.
-- Implemented improved gameplay device states.
-- Added some additional code optimization.
-- Cleaned up code in some particularly verbose areas.
-
-## Changelog V1.0.1
-
-- Added Version. Current version is 1.0.1
-- Added 3 second timer with 3-beep sequence to indicate start of round.
-- Added 5 minute Global Timer. Device can now play CS:GO standard SnD.
-- Global timer overwrites all other timers.
-- Added timer displays for both global timer and current det timer when device is armed.
-- Added a small tone every 10 seconds to allow device to be located when carrying player is hit.
-- Added continuous tone on game end.
-- Ending screens shows stopped timers and game state before moving on.
-- Default settings changed to 10 sec arm/disarm, 40 sec trigger.
-- Tilt switch temporarily removed: Use honesty system with respect to device movement.
-- Penalty system removed: Option still in menu but has no function.
-- Use Right button on ending screen to prevent button fall-through. Hack used -> better solution later.
