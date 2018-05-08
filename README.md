@@ -52,8 +52,4 @@ COMING SOON: HARDWARE CONFIGURATION
 
 ## UPDATE V1.1.0
 
-- Full device functionality complete.
-- Radio functionality complete.
-- Added tone output to radio systems.
-- Finished radio check function. Use reciever radio gain to amplify the signal.
-- Known foible: Some radio output on the bomb is delayed by up to 0.5s due to the fact that tones cannot be played simultaneously on two different pins.
+Major issues with radio output. Radio not functioning. Do not use with radio at this time.
