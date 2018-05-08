@@ -4,14 +4,12 @@
   Open Source Arduino Airsoft Project.
  */
  
-//Library declerations
 #include <LiquidCrystal.h> //LCD screen
 #include "LcdKeypad.h" //LCD keypad
 #include "HardwareParams.h" //hardware settings
 #include "GameParams.h" //gameplay settings
 
-//VERSION
-#define VERSION "   ver. 1.1.0   "
+#define VERSION "   ver. 1.1.0   " //VERSION
 
 //Custom characters for Progress bars
 uint8_t p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -86,20 +84,15 @@ MenuMode currentMenuMode = GAME_START;
 
 char btn; //the button that was pressed.
 
-//the menu setting function.
-void menuSettings();
+void menuSettings(); //do menu things
 
-//The start of game routine.
-void startGame();
-//pre-start of the game routine.
-void preStartGame();
+void startGame(); //The start of game routine.
+void preStartGame(); //pre-start of the game routine: Output game settings
 
-//print to the screen.
 void printtoScreen(char*,char*);
 void printtoTop(char*);
 void printtoBot(char*);
 
-//print to screen for constant strings
 void printtoScreen(const char*,const char*);
 void printtoTop(const char*);
 void printtoBot(const char*);
@@ -122,14 +115,14 @@ void drawProgress(unsigned long currTime, double maxTime);
 
 void clearTempArray();
 
-//end conditions.
+//end-game conditions.
 void attackersDetonate(); //T team win: Successful Detonation
 void foulDetonate(); //T team win: bomb was moved by CT.
 void defendersDefuse(); //CT team win: Successful Defuse
 void defendersStall(); //CT team win: Timeout
 void endOfGameCleanup(); //cleanup the screen and go back to the menu state.
 
-//play a tone
+//play a tone on the buzzer.
 void playShortTone(int freq, int len);
 
 //accelerometer checks
@@ -179,11 +172,12 @@ void setup() {
   planting_time = 0;
   defusing_time = 0;
   
-  // Print a message to the LCD.
+  tone(buzzerPin,menuTone);
   printtoScreen("  TheRuddyBomb  ", VERSION);
   delay(1500);
-  printtoScreen("  TheRuddyBomb  ", "   Bomb Ready   ");
+  printtoScreen("  TheRuddyBomb  ", "  Device Ready  ");
   delay(1000);
+  noTone(buzzerPin);
 }
 
 //main loop
@@ -566,8 +560,10 @@ void menuSettings(){
   //while true. Exit when the bomb is ready to be played.
   while (true){
 
-    //output radio check.
     if (currentMenuMode == SET_RADIO_CHECK){
+      
+      noTone(buzzerPin);
+      
       if ((millis() % 500) >= 250) tone(radioOutputPin,detonatorTone);
       else noTone(radioOutputPin);
     }
@@ -1088,10 +1084,11 @@ void endOfGameCleanup(){
   #ifdef externalButton
   while (digitalRead(switchPin) == 0);
   while (digitalRead(switchPin) == 1);
-  delay(1000); //wait 1 second to prevent fallthrough.
   #else
   while (!(btn == BUTTON_RIGHT_PRESSED)) btn = getButton();
   #endif
+
+  delay(1000); //wait 1 second to prevent fallthrough.
   
   //Let Menu stuff be visible when we go back to the bomb set state.
   currentMenuMode = GAME_START;
