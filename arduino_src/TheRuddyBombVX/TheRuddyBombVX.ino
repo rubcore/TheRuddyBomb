@@ -1,90 +1,17 @@
 /*
   TheRuddyBombVX - ATMEGA2560 on ARDUINO MEGA
- */
-//Function parameters
-//TIME in MILLISECONDS, use u_long.
-//Default settings set to:
-//10s arm time
-//40 second detonation time
-//10s defuse
-//5 minute game time
 
+  Open Source Arduino Airsoft Project.
+ */
+ 
 //Library declerations
-#include <LiquidCrystal.h>
-#include "LcdKeypad.h"
+#include <LiquidCrystal.h> //LCD screen
+#include "LcdKeypad.h" //LCD keypad
+#include "HardwareParams.h" //hardware settings
+#include "GameParams.h" //gameplay settings
 
 //VERSION
 #define VERSION "   ver. 1.1.0   "
-
-//defines the use of the external button for bomb arming/defusing.
-//comment out if not using external button.
-#define externalButton
-
-//Hardware
-#define buzzerPin 53 //Buzzer
-#define PIRPin 49 //PIR sensor
-#define switchPin 51 //for external button
-#define radioOutputPin 30 //for radio output.
-
-//ADC Accelerometer
-#define Z_axis A1
-#define Y_axis A2
-#define X_axis A3
-
-//buzzer tones
-#define menuTone 262 //menu selection and unarmed bomb
-#define detonatorTone 330 //on detonation
-#define plantDefuseTone 659 //whenever defusal or planting is in progress
-#define startTone 524 //start tone.
-
-//the LCD screen has 16 squares.
-#define row_len 16.0
-
-#define accelerometer_enable
-//high values for low sensitivity
-//low values for high sensitivity
-#define accel_sensitivity 10
-#define accel_max_variance 50
-
-//Bomb arm time
-#define ARM_time_default 0
-#define ARM_time_count 5
-#define ARM_time_10s 10000
-#define ARM_time_20s 20000
-#define ARM_time_30s 30000
-#define ARM_time_40s 40000
-#define ARM_time_50s 50000
-
-//Bomb trigger time
-#define TRIG_time_default 2
-#define TRIG_time_count 5
-#define TRIG_time_20s 20000
-#define TRIG_time_30s 30000
-#define TRIG_time_40s 40000
-#define TRIG_time_50s 50000
-#define TRIG_time_60s 60000
-
-//Bomb defuse time
-#define DEFUSE_time_default 0
-#define DEFUSE_time_count 5
-#define DEFUSE_time_10s 10000
-#define DEFUSE_time_20s 20000
-#define DEFUSE_time_30s 30000
-#define DEFUSE_time_40s 40000
-#define DEFUSE_time_50s 50000
-
-//global game time
-#define GAME_time_default 3
-#define GAME_time_count 9
-#define GAME_time_2m 120000
-#define GAME_time_3m 180000
-#define GAME_time_4m 240000
-#define GAME_time_5m 300000
-#define GAME_time_6m 360000
-#define GAME_time_7m 420000
-#define GAME_time_8m 480000
-#define GAME_time_9m 540000
-#define GAME_time_10m 600000
 
 //Custom characters for Progress bars
 uint8_t p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -219,19 +146,14 @@ unsigned int accel_pos = 0;
 //setup
 void setup() {
 
-  //setup the buzzer pin.
-  pinMode(buzzerPin, OUTPUT);
-  //PIR pin
-  pinMode(PIRPin, INPUT);
-  //external button
-  pinMode(switchPin,INPUT_PULLUP);
-  //setup the radio output.
-  pinMode(radioOutputPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT); //setup the buzzer pin.
+  pinMode(switchPin,INPUT_PULLUP); //external button
+  pinMode(radioOutputPin, OUTPUT); //setup the radio output.
+  pinMode(radioOutputPinPair, INPUT); //input.
 
   init_accel(); //clear out the accelerometer variables.
 
-  // set up the LCD's number of columns and rows.
-  lcd.begin(16, 2);
+  lcd.begin(16, 2); // set up the LCD's number of columns and rows.
   
   //create the custom characters for the progress bar.
   lcd.createChar(1, p1);
@@ -603,31 +525,36 @@ void startGame(){
 
   printtoBot(global_timer_bar);
 
-    //*****
-    //TODO: RADIO PROMPT
-    //*****
-
   //Delay 3 seconds with sound feedback
   printtoTop("[STARTING IN: 3]");
+
   playShortTone(menuTone,500);
+  delay(50);
   tone(radioOutputPin,menuTone);
   delay(750);
   noTone(radioOutputPin);
+  delay(50);
   printtoTop("[STARTING IN: 2]");
   playShortTone(menuTone,500);
+  delay(50);
   tone(radioOutputPin,menuTone);
   delay(750);
   noTone(radioOutputPin);
+  delay(50);
   printtoTop("[STARTING IN: 1]");
   playShortTone(menuTone,500);
+  delay(50);
   tone(radioOutputPin,menuTone);
   delay(750);
   noTone(radioOutputPin);
+  delay(50);
   printtoTop("[  GAME START  ]");
   playShortTone(startTone,500);
+  delay(50);
   tone(radioOutputPin,startTone);
   delay(750);
   noTone(radioOutputPin);
+  delay(50);
 }
 
 //set bomb parameters.
@@ -649,6 +576,8 @@ void menuSettings(){
 
     if (btn == BUTTON_DOWN_PRESSED){
 
+      noTone(radioOutputPin);
+      delay(15);
       playShortTone(menuTone,50);
       
       //loop the settings
@@ -687,7 +616,9 @@ void menuSettings(){
   
     }
     else if (btn == BUTTON_UP_PRESSED){
-      
+    
+      noTone(radioOutputPin);
+      delay(15);
       playShortTone(menuTone,50);
       
       //loop the settings
@@ -726,7 +657,9 @@ void menuSettings(){
       
     }
     else if (btn == BUTTON_LEFT_PRESSED){
-      
+
+      noTone(radioOutputPin);
+      delay(15);
       playShortTone(menuTone,50);
       
       if (currentMenuMode == SET_ARM_TIME){
@@ -745,6 +678,8 @@ void menuSettings(){
     }
     else if (btn == BUTTON_RIGHT_PRESSED){
 
+      noTone(radioOutputPin);
+      delay(15);
       playShortTone(menuTone,50);
             
       if (currentMenuMode == SET_ARM_TIME){
@@ -1153,7 +1088,7 @@ void endOfGameCleanup(){
   #ifdef externalButton
   while (digitalRead(switchPin) == 0);
   while (digitalRead(switchPin) == 1);
-  delay(300);
+  delay(1000); //wait 1 second to prevent fallthrough.
   #else
   while (!(btn == BUTTON_RIGHT_PRESSED)) btn = getButton();
   #endif
@@ -1161,7 +1096,7 @@ void endOfGameCleanup(){
   //Let Menu stuff be visible when we go back to the bomb set state.
   currentMenuMode = GAME_START;
 
-  noTone(radioOutputPin);
+  noTone(radioOutputPin); //clear out tones on all pins.
   noTone(buzzerPin);
   
 }
