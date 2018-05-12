@@ -9,8 +9,7 @@
 #include "HardwareParams.h" //hardware settings
 #include "GameParams.h" //gameplay settings
 
-
-#define VERSION "   ver. 1.1.1   " //VERSION
+#define VERSION "   ver. 1.1.2   " //VERSION
 
 //Custom characters for Progress bars
 uint8_t p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -189,13 +188,10 @@ void loop() {
     menuSettings(); //do menu stuff
   }
   else if(currentMode == WAITING_FOR_PLANT){
-
-    //booelan flag.
-    boolean arming_in_progress = false;
-    //temporary time.
-    unsigned long temp_time = 0;
-    //temporary time for the global counter
-    unsigned long temp_time_global = 0;
+    
+    boolean arming_in_progress = false; //booelan flag.
+    unsigned long temp_time = 0; //temporary time.
+    unsigned long temp_time_global = 0; //temporary time for the global counter
 
     game_start_time = millis(); //set the game start time.
     
@@ -209,9 +205,7 @@ void loop() {
       }
 
       btn = getButton(); //get the button.
-
-      //play Unarmed bomb tone.
-      //mod 10000 every 10 seconds 10% duty cycle.
+      
       if (!arming_in_progress){
         if (millis() % 10000 <= 1000) tone(buzzerPin,menuTone);
         else noTone(buzzerPin);
@@ -275,16 +269,10 @@ void loop() {
         temp_time = millis() - planting_time;
 
         //play 2Hz tone.
-        if (temp_time % 500 >= 250){
-          tone(buzzerPin,plantDefuseTone);
-        }
-        else{
-          noTone(buzzerPin);
-        }
-
-        //print the time remaining into the array.
-        //convert to seconds remaining.
-        Int2AsciiExt((unsigned int)((arm_time_set - temp_time)/1000));
+        if (temp_time % 500 >= 250) tone(buzzerPin,plantDefuseTone);
+        else noTone(buzzerPin);
+        
+        Int2AsciiExt((unsigned int)((arm_time_set - temp_time)/1000)); //print the time remaining into the array.
         
         //print to the array top line.
         printtoTop("[   PLANTING   ]");
@@ -333,7 +321,6 @@ void loop() {
     #endif
 
     noTone(buzzerPin); //clear the tones.
-    
     delay(500);
 
     #ifdef accelerometer_enable
@@ -360,6 +347,20 @@ void loop() {
          break;
       }
 
+      /*
+      //alternate the buzzers.
+      if ((time_remaining % 2000) >= 600) {
+        digitalWrite(PTTPin,LOW);
+        noTone(radioOutputPin);
+        //tone(buzzerPin,detonatorTone);
+      }
+      else {
+        //noTone(buzzerPin);
+        digitalWrite(PTTPin,HIGH);
+        tone(radioOutputPin,detonatorTone);
+      }
+      */
+
       //get the button
       btn = getButton();
 
@@ -368,6 +369,10 @@ void loop() {
       #else
       if ((btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED)&& !disarming_in_progress){
       #endif
+        
+        digitalWrite(PTTPin,LOW);
+        noTone(radioOutputPin);           
+        //noTone(buzzerPin);
         
         disarming_in_progress = true; //set the flag
 
@@ -381,14 +386,12 @@ void loop() {
       #else
       else if ((btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59 ){
       #endif
-      
-        //deset the flag
-        disarming_in_progress = false;
 
-        //reset the array with spaces.
-        clearTempArray();
+        disarming_in_progress = false; //deset the flag
 
-        noTone(buzzerPin);
+        clearTempArray(); //reset the array with spaces.
+
+        //noTone(buzzerPin); //clear out the tone
       }
       
       if (disarming_in_progress){
@@ -398,8 +401,8 @@ void loop() {
 
         //Temporarily removed disarming buzzer tone.
         //play 2Hz tone.
-        //if (temp_time % 500 >= 250) tone(buzzerPin,plantDefuseTone);
-        //else noTone(buzzerPin);
+        if (temp_time % 500 >= 250) tone(buzzerPin,plantDefuseTone);
+        else noTone(buzzerPin);
 
         //print the time remaining into the array.
         //convert to seconds remaining.
@@ -412,7 +415,6 @@ void loop() {
         //print the time to the array.
         drawProgress(temp_time, defuse_time_set);
 
-        //BOMB DEFUSED
         printtoBot(temp_array_16);
 
         //if the timer exceeds the defuse time.
@@ -427,41 +429,27 @@ void loop() {
         //calculate the time remaining.
         time_remaining = trig_time_set - (millis() - countdown_time);  
 
-        //TODO: disabled accelerated tone generation.
-        /*
+        //TODO: disabled accelerated tone generation for radio.
         //detonator tone acceleration
         //greater than 20 seconds
         if (time_remaining >= 20000){
-           if ((time_remaining % 1000) >= 500) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
+           if ((time_remaining % 1000) >= 500) { tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin);}
         }
         //start ramping up the beeping
         else if (time_remaining >=  15000){
-           if ((time_remaining % 800) >= 400) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
+           if ((time_remaining % 800) >= 400) { tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin);}
         }
         else if (time_remaining >=  15000){
-           if ((time_remaining % 600) >= 300) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
+           if ((time_remaining % 600) >= 300) {tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin); }
         }
         else{
-           if ((time_remaining % 500) >= 250) {noTone(radioOutputPin); tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin); tone(radioOutputPin,detonatorTone);}
+           if ((time_remaining % 500) >= 250) {tone(buzzerPin,detonatorTone); }
+           else {noTone(buzzerPin); }
         }
-        */
-
-        //alternate the buzzers.
-        if ((time_remaining % 1000) >= 500) {
-          digitalWrite(PTTPin,LOW);
-          noTone(radioOutputPin);           
-          tone(buzzerPin,detonatorTone);
-        }
-        else {
-          noTone(buzzerPin);
-          digitalWrite(PTTPin,HIGH);
-          tone(radioOutputPin,detonatorTone);
-        }
-
+        
         timerDisplay(time_remaining); //print to time format.
 
         //fill in the message

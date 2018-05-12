@@ -50,12 +50,7 @@ It also includes an accelerometer as tamper detection when the device is in an a
 
 COMING SOON: HARDWARE CONFIGURATION
 
-## UPDATE V1.1.1 (Working again.)
+## UPDATE V1.1.2 
 
-- Fixed radio output.
-- Temporarily removed accelerating detonation timer.
-- Temporarily removed disarming buzzer.
-- Fixed radio check support in Menu.
-- Added additional radio sound effects for armed and end of game procedures.
-- Found small bug that allows automatic disarming after arming... For now do not hold the arm button after you hear radio tones.
-- Moved game and hardware constants to seperate .h files.
+- Cleaned up code.
+- Radio now only opens at start of game, end of game, and bomb arm. Continuous beeping during bomb armed is disabled.
