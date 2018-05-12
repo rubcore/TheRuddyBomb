@@ -5,3 +5,5 @@ cmake-build-debug/*
 .pioenvs
 .piolibdeps
 CMakeListsPrivate.txt
+
+.md~
