@@ -9,7 +9,7 @@
 #include "HardwareParams.h" //hardware settings
 #include "GameParams.h" //gameplay settings
 
-#define VERSION "   ver. 1.1.2   " //VERSION
+#define VERSION "   ver. 1.2.0   " //VERSION
 
 //Custom characters for Progress bars
 uint8_t p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -289,6 +289,8 @@ void loop() {
           arming_in_progress = false; //deset the flag
           currentMode = TIMER_RUNNING; //change the state.
 
+          printtoScreen("[   PLANTED!   ]","                "); //Print new state to the screen
+
           radioArmRadioTone(); //output the radio.
 
           break;
@@ -310,9 +312,10 @@ void loop() {
     boolean disarming_in_progress = false; //boolean flag for disarming process
     //start the countdown.
     unsigned long countdown_time = millis(); //Set the current time.
-    
-    printtoScreen("[   PLANTED!   ]","                "); //Print new state to the screen
 
+    noTone(buzzerPin); //clear the tones.
+    delay(300); //delay a bit
+    
     //wait for button released.
     #ifdef externalButton
     while (digitalRead(switchPin) == 0);
@@ -320,31 +323,28 @@ void loop() {
     while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
     #endif
 
-    noTone(buzzerPin); //clear the tones.
-    delay(500);
-
-    #ifdef accelerometer_enable
-    init_accel(); //wait until the button has been released to check for accel settings.
-    #endif
+    //#ifdef accelerometer_enable
+    //init_accel(); //wait until the button has been released to check for accel settings.
+    //#endif
   
     //loop forever
     while (true){
 
-      #ifdef accelerometer_enable
+      //#ifdef accelerometer_enable
       //add a value into the accelerometer
-      add_accel();
+      //add_accel();
 
       //bomb has been moved
-      if (check_accel() == true){
-        foulDetonate();
-        break;
-      }
-      #endif
+      //if (check_accel() == true){
+      //  foulDetonate();
+      //  break;
+      //}
+      //#endif
       
       //check the global timer. If at any point 5 mins is up, the game is over.
       if ((millis() - game_start_time) >= game_time_set){
          defendersStall(); //end the game.
-         break;
+         break; //break out of loop and go to win state.
       }
 
       /*
@@ -516,23 +516,37 @@ void startGame(){
 
   printtoBot(global_timer_bar);
 
-  //Delay 3 seconds with sound feedback
+  //Countdown with sound feedback.
+  digitalWrite(PTTPin,HIGH);
+  delay(200); //let the open-mic signal propagate.
+  
   printtoTop("[STARTING IN: 3]");
   playShortTone(menuTone,500);
   delay(100);
-  playRadioTone(menuTone,600);
+  tone(radioOutputPin, menuTone);
+  delay(500);
+  noTone(radioOutputPin);
   printtoTop("[STARTING IN: 2]");
   playShortTone(menuTone,500);
   delay(100);
-  playRadioTone(menuTone,600);
+  tone(radioOutputPin, menuTone);
+  delay(500);
+  noTone(radioOutputPin);
   printtoTop("[STARTING IN: 1]");
   playShortTone(menuTone,500);
   delay(100);
-  playRadioTone(menuTone,600);
+  tone(radioOutputPin, menuTone);
+  delay(500);
+  noTone(radioOutputPin);
   printtoTop("[  GAME START  ]");
   playShortTone(startTone,500);
   delay(100);
-  playRadioTone(startTone,600);
+  tone(radioOutputPin, menuTone);
+  delay(500);
+  noTone(radioOutputPin);
+
+  delay(100); 
+  digitalWrite(PTTPin,LOW); //end the mic signal out.
 }
 
 //set bomb parameters.
@@ -986,15 +1000,15 @@ void drawProgress(unsigned long currTime, unsigned long maxTime) {
 
 //bomb is defused
 void defendersDefuse(){
+
+  //print notification
+  printtoTop("[   DEFUSED!   ]");
+  printtoBot(global_timer_bar);
   
   digitalWrite(PTTPin,LOW);
   noTone(radioOutputPin);
   noTone(buzzerPin);
   gameOverRadioTone(); //output on radio.
-
-  //print notification
-  printtoTop("[   DEFUSED!   ]");
-  printtoBot(global_timer_bar);
 
   //descending tones.
   for (int i = 500; i >= 100; --i){
@@ -1009,15 +1023,15 @@ void defendersDefuse(){
 //bomb is detonated
 void attackersDetonate(){
 
+  //print notification.
+  printtoTop("[  DETONATED!  ]");
+  printtoBot(global_timer_bar);
+
   digitalWrite(PTTPin,LOW);
   noTone(radioOutputPin);
   noTone(buzzerPin);
   detonatedRadioTone(); //radio output
   
-  //print notification.
-  printtoTop("[  DETONATED!  ]");
-  printtoBot(global_timer_bar);
-
   //play detonation tone.
   tone(buzzerPin, detonatorTone);
   
@@ -1028,6 +1042,10 @@ void attackersDetonate(){
 //the global timer runs out.
 void defendersStall(){
   
+  //print notification.
+  printtoTop("[  ROUND END!  ]");
+  printtoBot(global_timer_bar);
+  
   digitalWrite(PTTPin,LOW);
   noTone(radioOutputPin);
   noTone(buzzerPin);
@@ -1036,9 +1054,6 @@ void defendersStall(){
   //play game end tone.
   tone(buzzerPin, menuTone);
   
-  //print notification.
-  printtoTop("[  ROUND END!  ]");
-  printtoBot(global_timer_bar);
 
   //cleanup stuff
   endOfGameCleanup();

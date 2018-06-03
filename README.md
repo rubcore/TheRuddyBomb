@@ -43,14 +43,14 @@ It also includes an accelerometer as tamper detection when the device is in an a
 - Arduino MEGA 2560
 - DFRobot shield V1.0 with lcd screen
 - Generic Buzzer
-- ADC accelerometer
 - Generic push-button
 
 - The device also needs some kind of power supply - Virtually any 5V power source will suffice.
 
 COMING SOON: HARDWARE CONFIGURATION
 
-## UPDATE V1.1.2 
+## UPDATE V1.2.0
 
-- Cleaned up code.
-- Radio now only opens at start of game, end of game, and bomb arm. Continuous beeping during bomb armed is disabled.
+- Fixed start of game tone keying to hold PTT until end of tone sequence.
+- Accelerometer removed for basic version.
+- Added a pitches.h for tone generation of musical melodies.
