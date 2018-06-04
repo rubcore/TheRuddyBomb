@@ -4,9 +4,21 @@
   Open Source Arduino Airsoft Project - Hardware parameters
  */
 
+//=====HARDWARE SETTINGS=====
+ 
 //defines the use of the external button for bomb arming/defusing.
 //comment out if not using external button.
 #define externalButton
+
+//comment out the version of the device that you are NOT using.
+#define ARDUINO_MEGA
+//#define ARDUINO_UNO
+
+//=====END HARDWARE SETTINGS=====
+//(it is not recommended to edit past this point.)
+
+#ifdef ARDUINO_MEGA
+//Arduino MEGA settings
 
 //Hardware
 #define buzzerPin 53 //Buzzer
@@ -16,10 +28,16 @@
 #define PTTPin 47 //PTT ground connect.
 #define PTTPinPair 46 //the other pin.
 
-//ADC Accelerometer
-#define Z_axis A1
-#define Y_axis A2
-#define X_axis A3
+#else
+//Arduino UNO settings
+
+//Hardware
+#define buzzerPin 12 //Buzzer
+//#define switchPin 51 // external button
+#define radioOutputPin 11 // radio output.
+#define PTTPin 10 //PTT ground connect.
+
+#endif
 
 //buzzer tones
 #define menuTone 262 //menu selection and unarmed bomb
@@ -29,11 +47,5 @@
 
 //the LCD screen has 16 squares.
 #define row_len 16.0
-
-#define accelerometer_enable
-//high values for low sensitivity
-//low values for high sensitivity
-#define accel_sensitivity 10
-#define accel_max_variance 50
 
 #endif

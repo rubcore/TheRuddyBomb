@@ -121,17 +121,6 @@ void radioArmRadioTone(); //play radio message to indicate armed.
 void gameOverRadioTone(); //play radio message to indicate game over.
 void detonatedRadioTone(); //play radio message to indicate detonate.
 
-//accelerometer checks
-void add_accel(); //add values into the accelerometer stack.
-boolean check_accel(); //check whether the accelerometer has been triggered.
-void init_accel(); //initialize the accelerometer variables.
-//variables for filtering.
-unsigned int accel_array_x[accel_sensitivity];
-unsigned int accel_array_y[accel_sensitivity];
-unsigned int accel_array_z[accel_sensitivity];
-//array positioning for filters.
-unsigned int accel_pos = 0;
-
 void setup() {
 
   pinMode(buzzerPin, OUTPUT); //setup the buzzer pin.
@@ -141,8 +130,6 @@ void setup() {
   pinMode(PTTPin, OUTPUT); //output on the PTTPin.
   pinMode(PTTPinPair, INPUT); //input on the opposite PTT pin.
   digitalWrite(PTTPin, LOW); //write to PTT to disable
-
-  init_accel(); //clear out the accelerometer variables.
 
   lcd.begin(16, 2); // set up the LCD's number of columns and rows.
   
@@ -323,43 +310,14 @@ void loop() {
     while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
     #endif
 
-    //#ifdef accelerometer_enable
-    //init_accel(); //wait until the button has been released to check for accel settings.
-    //#endif
-  
     //loop forever
     while (true){
-
-      //#ifdef accelerometer_enable
-      //add a value into the accelerometer
-      //add_accel();
-
-      //bomb has been moved
-      //if (check_accel() == true){
-      //  foulDetonate();
-      //  break;
-      //}
-      //#endif
       
       //check the global timer. If at any point 5 mins is up, the game is over.
       if ((millis() - game_start_time) >= game_time_set){
          defendersStall(); //end the game.
          break; //break out of loop and go to win state.
       }
-
-      /*
-      //alternate the buzzers.
-      if ((time_remaining % 2000) >= 600) {
-        digitalWrite(PTTPin,LOW);
-        noTone(radioOutputPin);
-        //tone(buzzerPin,detonatorTone);
-      }
-      else {
-        //noTone(buzzerPin);
-        digitalWrite(PTTPin,HIGH);
-        tone(radioOutputPin,detonatorTone);
-      }
-      */
 
       //get the button
       btn = getButton();
@@ -518,7 +476,7 @@ void startGame(){
 
   //Countdown with sound feedback.
   digitalWrite(PTTPin,HIGH);
-  delay(200); //let the open-mic signal propagate.
+  delay(500); //let the open-mic signal propagate.
   
   printtoTop("[STARTING IN: 3]");
   playShortTone(menuTone,500);
@@ -1124,48 +1082,6 @@ void playRadioTone(int freq, int len){
   noTone(radioOutputPin);
   delay(50);
   digitalWrite(PTTPin,LOW);
-}
-
-void init_accel(){
-  //add values into the accelerometer array
-  for (char i = 0; i < accel_sensitivity; ++i) add_accel();
-}
-void add_accel(){
-  accel_array_x[accel_pos] = analogRead(X_axis);
-  accel_array_y[accel_pos] = analogRead(Y_axis);
-  accel_array_z[accel_pos] = analogRead(Z_axis);
-
-  accel_pos++;
-
-  if (accel_pos == accel_sensitivity) accel_pos = 0;
-}
-boolean check_accel(){
-
-  boolean result = false;
-  
-  unsigned int high_x = 0;
-  unsigned int high_y = 0;
-  unsigned int high_z = 0;
-  unsigned int low_x = 1023;
-  unsigned int low_y = 1023;
-  unsigned int low_z = 1023;
-
-  for (char i = 0; i < accel_sensitivity; ++i){
-    if (accel_array_x[i] > high_x) high_x = accel_array_x[i];
-    if (accel_array_x[i] < low_x) low_x = accel_array_x[i];
-
-    if (accel_array_z[i] > high_z) high_z = accel_array_z[i];
-    if (accel_array_z[i] < low_z) low_z = accel_array_z[i];
-
-    if (accel_array_y[i] > high_y) high_y = accel_array_y[i];
-    if (accel_array_y[i] < low_y) low_y = accel_array_y[i];
-  }
-
-  if (high_y - low_y >= accel_max_variance) result = true;
-  if (high_x - low_x >= accel_max_variance) result = true;
-  if (high_z - low_z >= accel_max_variance) result = true;
-
-  return result;
 }
 
 void radioArmRadioTone(){

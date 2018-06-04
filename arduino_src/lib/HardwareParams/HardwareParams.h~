@@ -13,6 +13,8 @@
 #define switchPin 51 // external button
 #define radioOutputPin 49 // radio output.
 #define radioOutputPinPair 48 //other pin.
+#define PTTPin 47 //PTT ground connect.
+#define PTTPinPair 46 //the other pin.
 
 //ADC Accelerometer
 #define Z_axis A1
