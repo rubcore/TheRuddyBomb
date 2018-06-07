@@ -1,6 +1,5 @@
 /*
   TheRuddyBombVX - ATMEGA2560 on ARDUINO MEGA
-
   Open Source Arduino Airsoft Project.
  */
  
@@ -123,12 +122,14 @@ void detonatedRadioTone(); //play radio message to indicate detonate.
 
 void setup() {
 
-  pinMode(buzzerPin, OUTPUT); //setup the buzzer pin.
-  pinMode(switchPin,INPUT_PULLUP); //external button
-  pinMode(radioOutputPin, OUTPUT); //setup the radio output.
-  pinMode(radioOutputPinPair, INPUT); //input.
+  pinMode(buzzerPin, OUTPUT); //setup the buzzer pin. This is a tone pin
+  pinMode(radioOutputPin, OUTPUT); //setup the radio output. This is a tone pin.
   pinMode(PTTPin, OUTPUT); //output on the PTTPin.
-  pinMode(PTTPinPair, INPUT); //input on the opposite PTT pin.
+
+  #ifdef externalButton
+  pinMode(switchPin,INPUT_PULLUP); //external button
+  #endif
+  
   digitalWrite(PTTPin, LOW); //write to PTT to disable
 
   lcd.begin(16, 2); // set up the LCD's number of columns and rows.
@@ -342,14 +343,13 @@ void loop() {
       #ifdef externalButton
       else if (digitalRead(switchPin) == 1){
       #else
-      else if ((btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59 ){
+      else if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59 ){
       #endif
 
         disarming_in_progress = false; //deset the flag
 
         clearTempArray(); //reset the array with spaces.
 
-        //noTone(buzzerPin); //clear out the tone
       }
       
       if (disarming_in_progress){
