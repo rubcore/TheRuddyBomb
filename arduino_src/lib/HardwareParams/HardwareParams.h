@@ -8,11 +8,11 @@
  
 //defines the use of the external button for bomb arming/defusing.
 //comment out if not using external button.
-#define externalButton
+//#define externalButton
 
 //comment out the version of the device that you are NOT using.
-#define ARDUINO_MEGA
-//#define ARDUINO_UNO
+//#define ARDUINO_MEGA
+#define ARDUINO_UNO
 
 //=====END HARDWARE SETTINGS=====
 //(it is not recommended to edit past this point.)
@@ -30,9 +30,9 @@
 //Arduino UNO settings
 
 //Hardware
-#define buzzerPin 11 //Buzzer
-#define radioOutputPin 12 // radio output.
-#define PTTPin 3 //PTT ground connect.
+#define buzzerPin 3 //Buzzer
+#define radioOutputPin 2 // radio output.
+#define PTTPin 12 //PTT ground connect.
 
 #endif
 
@@ -40,7 +40,7 @@
 #define menuTone 262 //menu selection and unarmed bomb
 #define detonatorTone 330 //on detonation
 #define plantDefuseTone 659 //whenever defusal or planting is in progress
-#define startTone 524 //start tone.
+#define startTone 400 //start tone.
 #define highTone 750 //high pitch for bomb-finding.
 
 //the LCD screen has 16 squares.

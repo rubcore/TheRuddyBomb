@@ -967,7 +967,7 @@ void defendersDefuse(unsigned long BombTime){
   gameOverRadioTone(); //output on radio.
 
   //descending tones.
-  for (int i = 500; i >= 100; --i){
+  for (int i = 400; i >= 100; --i){
     tone(buzzerPin,i);
     delay(5);
   }
@@ -1084,7 +1084,7 @@ void playRadioTone(int freq, int len){
 void radioArmRadioTone(){
   digitalWrite(PTTPin,HIGH);
   delay(100);
-  for (int i = 100; i < 500; ++i){
+  for (int i = 100; i < 400; ++i){
     tone(radioOutputPin,i);
     delay(5);
   }
@@ -1094,7 +1094,7 @@ void radioArmRadioTone(){
 void gameOverRadioTone(){
   digitalWrite(PTTPin,HIGH);
   delay(100);
-  for (int i = 500; i > 100; --i){
+  for (int i = 400; i > 100; --i){
     tone(radioOutputPin,i);
     delay(5);
   }
@@ -1107,7 +1107,7 @@ void detonatedRadioTone(){
   for (int i = 0; i < 3; ++i){
     tone(radioOutputPin,262);
     delay(800);
-    tone(radioOutputPin,523);
+    tone(radioOutputPin,400);
     delay(900);
     noTone(radioOutputPin);
     delay(500);

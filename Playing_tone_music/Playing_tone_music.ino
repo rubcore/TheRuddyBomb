@@ -1,7 +1,7 @@
 //Playing music
 #include <pitches.h>
 
-#define MusicPin 12
+#define MusicPin 3
 #define notes 100
 
 //encoding
