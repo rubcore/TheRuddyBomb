@@ -1,6 +1,8 @@
 /*
   TheRuddyBombVX - ATMEGA2560 on ARDUINO MEGA
   Open Source Arduino Airsoft Project.
+
+  Capture and control Code
  */
  
 #include <LiquidCrystal.h> //LCD screen
@@ -8,7 +10,9 @@
 #include "HardwareParams.h" //hardware settings
 #include "GameParams.h" //gameplay settings
 
-#define VERSION "   ver. 1.2.0   " //VERSION
+#define VERSION "   ver. 0.0.1   " //VERSION
+
+#define TeamSwitchPin 44 //for MEGA first.
 
 //Custom characters for Progress bars
 uint8_t p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -22,6 +26,11 @@ unsigned long armTimes[ARM_time_count] = {ARM_time_10s,ARM_time_20s,ARM_time_30s
 unsigned long trigTimes[TRIG_time_count] = {TRIG_time_20s,TRIG_time_30s,TRIG_time_40s,TRIG_time_50s,TRIG_time_60s};
 unsigned long defuseTimes[DEFUSE_time_count] = {DEFUSE_time_10s,DEFUSE_time_20s,DEFUSE_time_30s,DEFUSE_time_40s,DEFUSE_time_50s};
 unsigned long gameTimes[GAME_time_count] = {GAME_time_2m,GAME_time_3m,GAME_time_4m,GAME_time_5m,GAME_time_6m,GAME_time_7m,GAME_time_8m,GAME_time_9m,GAME_time_10m};
+
+//for capture and control
+unsigned long winTime = 300000; //5 minutes
+unsigned long bluePoints = 0;
+unsigned long redPoints = 0;
 
 //the current bomb setting
 unsigned long arm_time_set;
@@ -55,11 +64,16 @@ typedef enum AppModeValues {
     SELECT_BOMB_TYPE, WAITING_FOR_PLANT, BOMB_PLANTING, BOMB_DEFUSING, TIMER_RUNNING, APP_MENU_MODE, APP_PROCESS_MENU_CMD, APP_MENU_MODE_END
 } AppMode;
 
+typedef enum CCModeValues {
+  MENU, DEVICE_NEUTRAL, RED_TEAM_POS, GREEN_TEAM_POS, COUNTING_DOWN
+} CCMode; //capture and control.
+
 typedef enum MenuMode{
   GAME_START, SET_ARM_TIME, SET_TRIG_TIME, SET_DEFUSE_TIME, SET_GAME_TIME, SET_RADIO_CHECK
 } MenuMode;
 
-AppMode currentMode = SELECT_BOMB_TYPE;
+//AppMode currentMode = SELECT_BOMB_TYPE;
+CCMode currentMode = MENU;
 MenuMode currentMenuMode = GAME_START;
 
 char btn; //the button that was pressed.
@@ -157,118 +171,34 @@ void loop() {
 
   btn = getButton(); //get the button prompt.
 
-  if (currentMode == SELECT_BOMB_TYPE){
+  if (currentMode == MENU){
     menuSettings(); //do menu stuff
   }
-  else if(currentMode == WAITING_FOR_PLANT){
+  else if(currentMode == DEVICE_NEUTRAL){
     
-    boolean arming_in_progress = false; //booelan flag.
     unsigned long temp_time = 0; //temporary time.
     unsigned long temp_time_global = 0; //temporary time for the global counter
 
     game_start_time = millis(); //set the game start time.
     
-    //loop until we arm the bomb.
+    //loop until one team arms the bomb.
     while (true){
-
-      //check the global timer. If at any point 5 mins is up, the game is over.
-      if (millis() - game_start_time >= game_time_set){
-         defendersStall();
-         break;
-      }
 
       btn = getButton(); //get the button.
       
-      if (!arming_in_progress){
-        if (millis() % 10000 <= 1000) tone(buzzerPin,highTone);
-        else noTone(buzzerPin);
-        
-        //calculate the game global timer.
-        //calculate the time elapsed.
-        temp_time_global = game_time_set - (millis() - game_start_time);
-
-        //put the timer into the array
-        timerDisplay(temp_time_global);
-        
-        //fill in the message
-        global_timer_bar[2] = timerArray4[0];
-        global_timer_bar[3] = timerArray4[1];
-        global_timer_bar[5] = timerArray4[2];
-        global_timer_bar[6] = timerArray4[3];
-        
-        //print to the screen
-        printtoTop("[  PLANT ME!   ]");
-        printtoBot(global_timer_bar);
-      }
-
       //check button press
       #ifdef externalButton
-      if (digitalRead(switchPin) == 0 && !arming_in_progress){
+      if (digitalRead(switchPin) == 0){
       #else
-      if ((btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED )&& !arming_in_progress){
+      if ((btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED )){
       #endif
       
-        //set the flag
-        arming_in_progress = true;
-
         //blank the screen temporarily
         printtoBot("                ");
 
         //Now start the bomb planting timer.
         //start the timer.
         planting_time = millis();
-      }
-        #ifdef externalButton
-        else if (digitalRead(switchPin) == 1){
-        #else
-        else if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59){
-        #endif
-        
-        if (arming_in_progress == true) noTone(buzzerPin);
-    
-        //deset the flag
-        arming_in_progress = false;
-
-        //reset the array with spaces.
-        clearTempArray();
-        
-      }
-      
-      if (arming_in_progress){
-        //print the progress to the screen.
-
-        //calculate the time remaining.
-        temp_time = millis() - planting_time;
-
-        //play 2Hz tone.
-        if (temp_time % 500 >= 250) tone(buzzerPin,plantDefuseTone);
-        else noTone(buzzerPin);
-        
-        Int2AsciiExt((unsigned int)((arm_time_set - temp_time)/1000)); //print the time remaining into the array.
-        
-        //print to the array top line.
-        printtoTop("[   PLANTING   ]");
-
-        //print to the array bottom line.
-        drawProgress(temp_time, arm_time_set);
-
-        printtoBot(temp_array_16);
-        
-        if (temp_time >= arm_time_set){
-          
-          temp_time = 0; //reset the temp time.
-          clearTempArray(); //reset the array with spaces.
-          arming_in_progress = false; //deset the flag
-          currentMode = TIMER_RUNNING; //change the state.
-
-          printtoScreen("[   PLANTED!   ]","                "); //Print new state to the screen
-
-          radioArmRadioTone(); //output the radio.
-
-          break;
-          
-        }
-        
       }
       
     }
@@ -450,6 +380,9 @@ void preStartGame(){
 //This function is the start process.
 void startGame(){
 
+  //TODO: WAIT 30 seconds before start.
+
+
   //Change: Removal of bomb beeping. All outputs are now through radio for start tone.
   printtoBot(global_timer_bar);
 
@@ -488,6 +421,8 @@ void startGame(){
   //put an additional start tone to output.
   playShortTone(startTone,500);
   delay(100);
+
+  //game start.
 }
 
 //set bomb parameters.

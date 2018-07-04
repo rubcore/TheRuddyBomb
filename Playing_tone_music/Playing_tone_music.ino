@@ -14,7 +14,14 @@
 //DPN = duration per note
 
 //Funkytown - Lipps Inc.
-unsigned int song_tone[] = {NOTE_A4,0,NOTE_A4,0,NOTE_G4,0,NOTE_A4,0,NOTE_E4,0,NOTE_E4,0,NOTE_G4,0,NOTE_D5,0,NOTE_C5,0,NOTE_A4,0,NOTE_A4,0,NOTE_A4,0,NOTE_G4,0,NOTE_A4,0,NOTE_E4,0,NOTE_E4,0,NOTE_G4,0,NOTE_D5,0,NOTE_C5,0,NOTE_A4,0};
+//unsigned int song_tone[] = {NOTE_A4,0,NOTE_A4,0,NOTE_G4,0,NOTE_A4,0,NOTE_E4,0,NOTE_E4,0,NOTE_G4,0,NOTE_D5,0,NOTE_C5,0,NOTE_A4,0,NOTE_A4,0,NOTE_A4,0,NOTE_G4,0,NOTE_A4,0,NOTE_E4,0,NOTE_E4,0,NOTE_G4,0,NOTE_D5,0,NOTE_C5,0,NOTE_A4,0};
+//char song_duration[] = {8,8,8,8,8,8,4,4,4,4,8,8,8,8,8,8,8,8,8,1,8,8,8,8,8,8,4,4,4,4,8,8,8,8,8,8,8,8,8,4};
+//unsigned int items = 40;
+//float DPN = 1000.0;
+
+//TYMT - The Pillows
+unsigned int song_tone[] = {NOTE_C6,0,NOTE_A5,0,NOTE_G5,0,NOTE_F5,0,NOTE_G5,0,NOTE_E5,0,NOTE_F5,0,NOTE_E5,0,NOTE_CS5
+,0,NOTE_A4,0,NOTE_A4,0,NOTE_A4,0,NOTE_G4,0,NOTE_A4,0,NOTE_E4,0,NOTE_E4,0,NOTE_G4,0,NOTE_D5,0,NOTE_C5,0,NOTE_A4,0};
 char song_duration[] = {8,8,8,8,8,8,4,4,4,4,8,8,8,8,8,8,8,8,8,1,8,8,8,8,8,8,4,4,4,4,8,8,8,8,8,8,8,8,8,4};
 unsigned int items = 40;
 float DPN = 1000.0;
