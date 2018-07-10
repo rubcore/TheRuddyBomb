@@ -28,9 +28,9 @@ unsigned long defuseTimes[DEFUSE_time_count] = {DEFUSE_time_10s,DEFUSE_time_20s,
 unsigned long gameTimes[GAME_time_count] = {GAME_time_2m,GAME_time_3m,GAME_time_4m,GAME_time_5m,GAME_time_6m,GAME_time_7m,GAME_time_8m,GAME_time_9m,GAME_time_10m};
 
 //for capture and control
-unsigned long winTime = 300000; //5 minutes
-unsigned long bluePoints = 0;
-unsigned long redPoints = 0;
+const unsigned long winTime = 300000; //5 minutes
+unsigned long bluePoints = 300000;
+unsigned long redPoints = 300000;
 
 //the current bomb setting
 unsigned long arm_time_set;
@@ -175,180 +175,127 @@ void loop() {
     menuSettings(); //do menu stuff
   }
   else if(currentMode == DEVICE_NEUTRAL){
-    
-    unsigned long temp_time = 0; //temporary time.
-    unsigned long temp_time_global = 0; //temporary time for the global counter
 
     game_start_time = millis(); //set the game start time.
     
-    //loop until one team arms the bomb.
+    //loop until one team captures the first position.
     while (true){
 
       btn = getButton(); //get the button.
-      
-      //check button press
-      #ifdef externalButton
-      if (digitalRead(switchPin) == 0){
-      #else
-      if ((btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED )){
-      #endif
-      
-        //blank the screen temporarily
-        printtoBot("                ");
 
-        //Now start the bomb planting timer.
-        //start the timer.
-        planting_time = millis();
+      if ((millis() - game_start_time) >= 420000){
+        //use tone to signal transition into sudden death.
+        currentMode = COUNTING_DOWN;
+        break;
       }
+
+      //TODO
+      //if button press: Check switch orientation andd go to that position.
+      //play tone to indicate position capture.
+      //if (button Press with red switch){
+
+        currentMode == RED_TEAM_POS;
+        break;
+
+      //}
+      //else if (button Press with green switch){
+
+        currentMode = GREEN_TEAM_POS;
+        break;
+
+      //}
       
     }
     
   }
-  else if(currentMode == TIMER_RUNNING){
+  else if(currentMode == RED_TEAM_POS){
+  //red team possession. 
 
-    //setup detonate variables
-    unsigned long temp_time = 0; //a temp time variable
-    unsigned long defuse_time = 0; //the defuse time variable
-    unsigned long time_remaining = 0;
-    unsigned long temp_time_global = 0; //global time.
-    boolean disarming_in_progress = false; //boolean flag for disarming process
-    //start the countdown.
-    unsigned long countdown_time = millis(); //Set the current time.
+  unsigned long possession_start = millis();
 
-    noTone(buzzerPin); //clear the tones.
-    delay(300); //delay a bit
-    
-    //wait for button released.
-    #ifdef externalButton
-    while (digitalRead(switchPin) == 0);
-    #else
-    while (!(btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59)) btn = getButton();
-    #endif
+  //add time to red team clock.
 
-    //loop forever
+  //if time over 3 minutes then end.
+
     while (true){
+
+    btn = getButton(); //get the button.
+    
+    //if button press and turn to green.
+    if (buttonDown && switchinGreen){
+
+      //subtract current score from red team.
+      redPoints = redPoints - (millis() - possession_start);
       
-      //check the global timer. If at any point 5 mins is up, the game is over.
-      if ((millis() - game_start_time) >= game_time_set){
-         defendersStall(); //end the game.
-         break; //break out of loop and go to win state.
+      currentMode = GREEN_TEAM_POS;  
+      break;
+    }
+
+    //if current time is greater than existing time - red team wins.
+      if ((millis() - possession_start) >= redPoints){
+        //red team wins.
+
+        break;
       }
+    }
 
-      //get the button
-      btn = getButton();
-
-      #ifdef externalButton
-      if (digitalRead(switchPin) == 0 && !disarming_in_progress){
-      #else
-      if ((btn == BUTTON_SELECT_PRESSED || btn == BUTTON_SELECT_LONG_PRESSED)&& !disarming_in_progress){
-      #endif
-        
-        digitalWrite(PTTPin,LOW);
-        noTone(radioOutputPin);
-        
-        disarming_in_progress = true; //set the flag
-
-        //Now start the bomb planting timer.
-        //start the timer.
-        defuse_time = millis();
-      }
-
-      #ifdef externalButton
-      else if (digitalRead(switchPin) == 1){
-      #else
-      else if (btn == BUTTON_SELECT_SHORT_RELEASE || btn == -59 ){
-      #endif
-
-        disarming_in_progress = false; //deset the flag
-
-        clearTempArray(); //reset the array with spaces.
-
-      }
-      
-      if (disarming_in_progress){
-
-        //calculate the time remaining.
-        temp_time = millis() - defuse_time;
-
-        //Temporarily removed disarming buzzer tone.
-        //play 2Hz tone.
-        if (temp_time % 500 >= 250) tone(buzzerPin,plantDefuseTone);
-        else noTone(buzzerPin);
-
-        //print the time remaining into the array.
-        //convert to seconds remaining.
-        Int2AsciiExt((unsigned int)((defuse_time_set - temp_time)/1000));
-        
-        //print to the array top line.
-        printtoTop("[   DEFUSING   ]");
-        
-        //print to the array bottom line.
-        //print the time to the array.
-        drawProgress(temp_time, defuse_time_set);
-        printtoBot(temp_array_16);
-
-        //if the timer exceeds the defuse time.
-        if (temp_time >= defuse_time_set){
-          defendersDefuse(countdown_time); //bomb is defused
-          break;
-        }
-        
-      }
-      else{ //just draw the countdown timer.
-        
-        //calculate the time remaining.
-        time_remaining = trig_time_set - (millis() - countdown_time);  
-
-        //detonator tone acceleration
-        if (time_remaining >= 20000){
-           if ((time_remaining % 1000) >= 500) { tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin);}
-        }
-        //start ramping up the beeping
-        else if (time_remaining >=  15000){
-           if ((time_remaining % 800) >= 400) { tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin);}
-        }
-        else if (time_remaining >=  15000){
-           if ((time_remaining % 600) >= 300) {tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin); }
-        }
-        else{
-           if ((time_remaining % 500) >= 250) {tone(buzzerPin,detonatorTone); }
-           else {noTone(buzzerPin); }
-        }
-        
-        timerDisplay(time_remaining); //print to time format.
-
-        //fill in the message
-        global_timer_bar[10] = timerArray4[0];
-        global_timer_bar[11] = timerArray4[1];
-        global_timer_bar[13] = timerArray4[2];
-        global_timer_bar[14] = timerArray4[3];
-
-        //calculate the game global timer.
-        //calculate the time elapsed.
-        temp_time_global = game_time_set - (millis() - game_start_time);
-
-        timerDisplay(temp_time_global); //print to time format.
+  }
+  else if(currentMode == GREEN_TEAM_POS){
+  //green team possession.
   
-        //fill in the message
-        global_timer_bar[2] = timerArray4[0];
-        global_timer_bar[3] = timerArray4[1];
-        global_timer_bar[5] = timerArray4[2];
-        global_timer_bar[6] = timerArray4[3];
+  unsigned long possession_start = millis();
 
-        //print the array to the screen to indicate time remaining
-        printtoTop("[   PLANTED!   ]"); printtoBot(global_timer_bar);
+  //add time to green team clock.
+
+  //if time over 3 minutes then end.
+
+    while (true){
+
+    //if button press and turn to red.
+      if (switcheddown && switchinRED){
+  
+        greenPoints = greenPoints - (millis() - possession_start);
         
+        //subtract current score from green team.
+        currentMode = RED_TEAM_POS;  
+        break;
       }
-      //BOMB DETONATES ...case irrespective of current state.
-      if ((millis() - countdown_time) >= trig_time_set){
-        attackersDetonate();//bomb detonates: End the game
+
+      //if current time is greater than existing time - green team wins.
+      if ((millis() - possession_start) >= greenPoints){
+        //green team wins.
         break;
       }
       
     }
+
+  }
+  else if (currentMode == COUNTING_DOWN){
+  //No captures in first 7 minutes. Last position held wins in 3 minutes.
+
+    unsigned long sd_timer_start = millis();
+
+    //count down 3 minutes
+    while (true){
+  
+      //if 3 minutes over, check switch orientation and award winner to that team.
+      //sound tone.
+
+      if ((millis() - sd_timer_start) >= 300000){
+        //if (currently red) then red win goto redwinfn
+        //if (currently green) then green win goto greenwinfn
+        break;
+      }
+
+      //check the switch orientation to light up correct LED.
+      //if (red) then red LED on
+      //if (green) then geren LED on
+
+      //if button press then switch allegence of device.
+      //switch to whichever colour.
+
+    }
+    
   }
 }
 
