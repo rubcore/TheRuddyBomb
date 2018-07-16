@@ -12,7 +12,16 @@
 
 #define VERSION "   ver. 0.0.1   " //VERSION
 
-#define TeamSwitchPin 44 //for MEGA first.
+#define TeamSwitchPin 44 //TEAM COLOUR SWITCH
+#define butPin 45 //TEAM CHANGE SWITCH
+
+//switch position
+#define TeamRedPos 1
+#define TeamGreenPos 0
+
+//colour LEDs
+#define greenLEDPin 30
+#define redLEDPin 31
 
 //Custom characters for Progress bars
 uint8_t p1[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
@@ -29,7 +38,7 @@ unsigned long gameTimes[GAME_time_count] = {GAME_time_2m,GAME_time_3m,GAME_time_
 
 //for capture and control
 const unsigned long winTime = 300000; //5 minutes
-unsigned long bluePoints = 300000;
+unsigned long greenPoints = 300000;
 unsigned long redPoints = 300000;
 
 //the current bomb setting
@@ -107,11 +116,9 @@ void drawProgress(unsigned long currTime, double maxTime); //draw the progress b
 
 void clearTempArray();
 
-//win conditions.
-void attackersDetonate(); //T team win: Successful Detonation
-void foulDetonate(); //T team win: bomb was moved by CT.
-void defendersDefuse(unsigned long BombTime); //CT team win: Successful Defuse
-void defendersStall(); //CT team win: Timeout
+void greenTeamWin();
+void redTeamWin();
+void draw(); //niether team claims device
 void endOfGameCleanup(); //cleanup the screen and go back to the menu state.
 
 void playShortTone(int freq, int len); //play a tone on the buzzer.
@@ -177,33 +184,41 @@ void loop() {
   else if(currentMode == DEVICE_NEUTRAL){
 
     game_start_time = millis(); //set the game start time.
+    char latched = 0;
+    
+    printtoScreen("[   NEUTRAL!   ]","                "); //set screen
     
     //loop until one team captures the first position.
     while (true){
 
       btn = getButton(); //get the button.
 
+      //7 minutes pass without capture - goto sudden death
       if ((millis() - game_start_time) >= 420000){
         //use tone to signal transition into sudden death.
         currentMode = COUNTING_DOWN;
         break;
       }
 
-      //TODO
+      //latch the button for NGE trigger to next state.
+      if (digitalRead(butPin) == 1){
+        latched = 1;
+      }
+
       //if button press: Check switch orientation andd go to that position.
       //play tone to indicate position capture.
-      //if (button Press with red switch){
+      if (digitalRead(butPin) == 0 && latched == 1 && digitalRead(TeamSwitchPin) == RedTeamPos){
 
         currentMode == RED_TEAM_POS;
         break;
 
-      //}
-      //else if (button Press with green switch){
+      }
+      else if (digitalRead(butPin) == 0 && latched == 1 && digitalRead(TeamSwitchPin) == GreenTeamPos){
 
         currentMode = GREEN_TEAM_POS;
         break;
 
-      //}
+      }
       
     }
     
@@ -211,6 +226,12 @@ void loop() {
   else if(currentMode == RED_TEAM_POS){
   //red team possession. 
 
+  printtoScreen("[  RED TEAM!   ]","                "); //set screen
+
+  //set LEDs to red.
+  digitalWrite(redLEDPin,HIGH);
+  digitalWrite(greenLEDPin,LOW);
+    
   unsigned long possession_start = millis();
 
   //add time to red team clock.
@@ -219,22 +240,31 @@ void loop() {
 
     while (true){
 
-    btn = getButton(); //get the button.
-    
-    //if button press and turn to green.
-    if (buttonDown && switchinGreen){
+      //draw the timer bar.
+      drawProgress((millis() - possession_start), redPoints);
+      printtoBot(temp_array_16);
+  
+      btn = getButton(); //get the button.
 
-      //subtract current score from red team.
-      redPoints = redPoints - (millis() - possession_start);
+      //latch the button for NGE trigger to next state.
+      if (digitalRead(butPin) == 1){
+        latched = 1;
+      }
       
-      currentMode = GREEN_TEAM_POS;  
-      break;
-    }
+      //if button press and turn to green.
+      if (digitalRead(butPin) == 0 && latched == 1 && digitalRead(TeamSwitchPin) == GreenTeamPos){
+  
+        //subtract current score from red team.
+        redPoints = redPoints - (millis() - possession_start);
+        
+        currentMode = GREEN_TEAM_POS;  
+        break;
+      }
 
     //if current time is greater than existing time - red team wins.
       if ((millis() - possession_start) >= redPoints){
-        //red team wins.
 
+        redTeamWin();
         break;
       }
     }
@@ -243,16 +273,34 @@ void loop() {
   else if(currentMode == GREEN_TEAM_POS){
   //green team possession.
   
+  printtoScreen("[ GREEN TEAM!  ]","                "); //set screen
+
+  
+
+  //set the LEDs to correct position.
+  digitalWrite(greenLEDPin,HIGH);
+  digitalWrite(redLEDPin,LOW);
+  
   unsigned long possession_start = millis();
 
   //add time to green team clock.
-
   //if time over 3 minutes then end.
 
     while (true){
+      
+      btn = getButton();
+      
+      //draw the timer bar.
+      drawProgress((millis() - possession_start), greenPoints);
+      printtoBot(temp_array_16);
+      
+      //latch the button for NGE trigger to next state.
+      if (digitalRead(butPin) == 1){
+        latched = 1;
+      }
 
     //if button press and turn to red.
-      if (switcheddown && switchinRED){
+      if (digitalRead(butPin) == 0 && latched == 1 && digitalRead(TeamSwitchPin) == RedTeamPos){
   
         greenPoints = greenPoints - (millis() - possession_start);
         
@@ -263,7 +311,7 @@ void loop() {
 
       //if current time is greater than existing time - green team wins.
       if ((millis() - possession_start) >= greenPoints){
-        //green team wins.
+        greenTeamWin();
         break;
       }
       
@@ -274,6 +322,13 @@ void loop() {
   //No captures in first 7 minutes. Last position held wins in 3 minutes.
 
     unsigned long sd_timer_start = millis();
+    char current_possession = 'n';
+    //'n' for neutral
+    //'g' for green
+    //'r' for red
+
+    
+    printtoScreen("[LAST CAP WINS!]","                "); //set screen
 
     //count down 3 minutes
     while (true){
@@ -281,18 +336,37 @@ void loop() {
       //if 3 minutes over, check switch orientation and award winner to that team.
       //sound tone.
 
-      if ((millis() - sd_timer_start) >= 300000){
-        //if (currently red) then red win goto redwinfn
-        //if (currently green) then green win goto greenwinfn
+      if ((millis() - sd_timer_start) >= 180000){
+        if (current_possession == 'r') redTeamWin();
+        else if (current_possession == 'g') greenTeamWin();
+        else draw();
         break;
       }
 
       //check the switch orientation to light up correct LED.
-      //if (red) then red LED on
-      //if (green) then geren LED on
+      if (current_possession == 'n'){
+        digitalWrite(redLEDPin,LOW);
+        digitalWrite(greenLEDPin,LOW);
+      }
+      else if (current_possession == 'r'){
+        digitalWrite(redLEDPin,HIGH);
+        digitalWrite(greenLEDPin,LOW);
+      }
+      else if (current_possession == 'g'){
+        digitalWrite(greenLEDPin,HIGH);
+        digitalWrite(redLEDPin,LOW);
+      }
+      
 
-      //if button press then switch allegence of device.
-      //switch to whichever colour.
+      //switch to green
+      if (digitalRead(TeamSwitchPin, TeamGreenPos)){
+        current_possession = 'g';
+      }
+      //switch to red.
+      else{
+        current_possession = 'r';
+      }
+
 
     }
     
@@ -327,37 +401,39 @@ void preStartGame(){
 //This function is the start process.
 void startGame(){
 
-  //TODO: WAIT 30 seconds before start.
+  unsigned long start_time = millis();
+  
+  //wait 30 seconds before start.
+  printtoTop("[START IN 30SEC]");
+  
+  while ((millis() - start_time) < 30000){
+        //simply draw the progress bar.
+        drawProgress(millis() - start_time, 30000);
 
-
-  //Change: Removal of bomb beeping. All outputs are now through radio for start tone.
-  printtoBot(global_timer_bar);
+        //play 2Hz tone.
+        if (millis() % 500 >= 250) tone(buzzerPin,plantDefuseTone);
+        else noTone(buzzerPin);
+  }
+  
+  //Start the game start countdown.
 
   //Countdown with sound feedback.
   digitalWrite(PTTPin,HIGH);
   delay(500); //let the open-mic signal propagate.
   
   printtoTop("[STARTING IN: 3]");
-  //playShortTone(menuTone,500);
-  //delay(100);
   tone(radioOutputPin, menuTone);
   delay(500);
   noTone(radioOutputPin);
   printtoTop("[STARTING IN: 2]");
-  //playShortTone(menuTone,500);
-  //delay(100);
   tone(radioOutputPin, menuTone);
   delay(500);
   noTone(radioOutputPin);
   printtoTop("[STARTING IN: 1]");
-  //playShortTone(menuTone,500);
-  //delay(100);
   tone(radioOutputPin, menuTone);
   delay(500);
   noTone(radioOutputPin);
   printtoTop("[  GAME START  ]");
-  //playShortTone(startTone,500);
-  //delay(100);
   tone(radioOutputPin, startTone);
   delay(500);
   noTone(radioOutputPin);
@@ -820,8 +896,7 @@ void drawProgress(unsigned long currTime, unsigned long maxTime) {
     }
 }
 
-//bomb is defused
-void defendersDefuse(unsigned long BombTime){
+void greenTeamWin(unsigned long BombTime){
   
   //calculate the remaining time.
   unsigned long bomb_remaining_time = trig_time_set - (millis() - BombTime);
@@ -845,20 +920,40 @@ void defendersDefuse(unsigned long BombTime){
   global_timer_bar[14] = timerArray4[3];
 
   //print notification
-  printtoTop("[   DEFUSED!   ]");
+  printtoTop("[GREEN TEAM WIN!]");
+  printtoBot(global_timer_bar);
+
+  digitalWrite(PTTPin,LOW);
+  noTone(radioOutputPin);
+  noTone(buzzerPin);
+  detonatedRadioTone(); //radio output
+  
+  //play detonation tone.
+  tone(buzzerPin, detonatorTone);
+
+  //cleanup stuff
+  endOfGameCleanup();
+}
+
+void redTeamWin(unsigned long BombTime){
+
+  //print notification
+  printtoTop("[ RED TEAM WIN! ]");
   printtoBot(global_timer_bar);
   
   digitalWrite(PTTPin,LOW);
   noTone(radioOutputPin);
   noTone(buzzerPin);
-  gameOverRadioTone(); //output on radio.
+  detonatedRadioTone(); //radio output
+  
+  //play detonation tone.
+  tone(buzzerPin, detonatorTone);
+  
+  //cleanup stuff
+  endOfGameCleanup();
+}
 
-  //descending tones.
-  for (int i = 400; i >= 100; --i){
-    tone(buzzerPin,i);
-    delay(5);
-  }
-
+void draw(){
   //cleanup stuff
   endOfGameCleanup();
 }
@@ -882,50 +977,20 @@ void attackersDetonate(){
   endOfGameCleanup();
 }
 
-//the global timer runs out.
-void defendersStall(){
-  
-  //print notification.
-  printtoTop("[  ROUND END!  ]");
-  printtoBot(global_timer_bar);
-  
-  digitalWrite(PTTPin,LOW);
-  noTone(radioOutputPin);
-  noTone(buzzerPin);
-  gameOverRadioTone(); //end the game over radio.
-  
-  //play game end tone.
-  tone(buzzerPin, menuTone);
-  
-
-  //cleanup stuff
-  endOfGameCleanup();
-}
-
-void foulDetonate(){
-
-  digitalWrite(PTTPin,LOW);
-  noTone(radioOutputPin);
-  noTone(buzzerPin);
-  detonatedRadioTone(); //end the game.
-    
-  //play detonation tone.
-  tone(buzzerPin, detonatorTone);
-  
-  //print notification.
-  printtoTop("[     FOUL!    ]");
-  printtoBot(global_timer_bar);
-
-  //cleanup stuff
-  endOfGameCleanup();
-}
-
 //cleanup the end of the game
 void endOfGameCleanup(){
   
   // go back to the bomb type.
-  currentMode = SELECT_BOMB_TYPE;
+  currentMode = MENU;
 
+  //reset the points for each team.
+  greenPoints = winTime;
+  redPoints = winTime; 
+
+  //set all LED pins low to indicate end of game.
+  digitalWrite(redLEDPin,LOW);
+  digitalWrite(greenLEDPin,LOW);
+        
   //cleanup the progress bar
   clearTempArray();
 
@@ -942,7 +1007,6 @@ void endOfGameCleanup(){
   currentMenuMode = GAME_START;
 
   noTone(buzzerPin);
-  
 }
 
 //clear the temporary array.
@@ -972,16 +1036,6 @@ void radioArmRadioTone(){
   digitalWrite(PTTPin,HIGH);
   delay(100);
   for (int i = 100; i < 400; ++i){
-    tone(radioOutputPin,i);
-    delay(5);
-  }
-  noTone(radioOutputPin);
-  digitalWrite(PTTPin,LOW);
-}
-void gameOverRadioTone(){
-  digitalWrite(PTTPin,HIGH);
-  delay(100);
-  for (int i = 400; i > 100; --i){
     tone(radioOutputPin,i);
     delay(5);
   }
