@@ -120,6 +120,7 @@ void greenTeamWin();
 void redTeamWin();
 void draw(); //niether team claims device
 void endOfGameCleanup(); //cleanup the screen and go back to the menu state.
+char checkPosition(); //check the position of the toggle switch.
 
 void playShortTone(int freq, int len); //play a tone on the buzzer.
 void playRadioTone(int freq, int len); //play a tone on the radio.
@@ -275,8 +276,6 @@ void loop() {
   
   printtoScreen("[ GREEN TEAM!  ]","                "); //set screen
 
-  
-
   //set the LEDs to correct position.
   digitalWrite(greenLEDPin,HIGH);
   digitalWrite(redLEDPin,LOW);
@@ -326,7 +325,6 @@ void loop() {
     //'n' for neutral
     //'g' for green
     //'r' for red
-
     
     printtoScreen("[LAST CAP WINS!]","                "); //set screen
 
@@ -356,7 +354,6 @@ void loop() {
         digitalWrite(greenLEDPin,HIGH);
         digitalWrite(redLEDPin,LOW);
       }
-      
 
       //switch to green
       if (digitalRead(TeamSwitchPin, TeamGreenPos)){
@@ -1014,6 +1011,19 @@ void clearTempArray(){
   //set the array to just spaces
  for (char i = 0; i < 16; ++i){
    temp_array_16[i] = ' ';
+  }
+}
+
+char checkPosition(){
+
+  if (1){
+    return 'r'; //red team position
+  }
+  else if (1){
+    return 'g'; //green team position
+  }
+  else{
+    return 'n'; //centre position - device neutral.
   }
 }
 
